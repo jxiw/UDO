@@ -102,6 +102,24 @@ class Loader:
         w_tuples = [ self.generateWarehouse(w_id) ]
         self.handle.loadTuples(constants.TABLENAME_WAREHOUSE, w_tuples)
 
+        ## STOCK
+        ## Select 10% of the stock to be marked "original"
+        s_tuples = [ ]
+        selectedRows = rand.selectUniqueIds(self.scaleParameters.items / 10, 1, self.scaleParameters.items)
+        total_tuples = 0
+        for i_id in range(1, self.scaleParameters.items+1):
+            original = (i_id in selectedRows)
+            s_tuples.append(self.generateStock(w_id, i_id, original))
+            if len(s_tuples) >= self.batch_size:
+                logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
+                self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
+                s_tuples = [ ]
+            total_tuples += 1
+        ## FOR
+        if len(s_tuples) > 0:
+            logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
+            self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
+
         ## DISTRICT
         d_tuples = [ ]
         for d_id in range(1, self.scaleParameters.districtsPerWarehouse+1):
@@ -157,23 +175,6 @@ class Loader:
             self.handle.loadTuples(constants.TABLENAME_HISTORY, h_tuples)
             self.handle.loadFinishDistrict(w_id, d_id)
         ## FOR
-        
-        ## Select 10% of the stock to be marked "original"
-        s_tuples = [ ]
-        selectedRows = rand.selectUniqueIds(self.scaleParameters.items / 10, 1, self.scaleParameters.items)
-        total_tuples = 0
-        for i_id in range(1, self.scaleParameters.items+1):
-            original = (i_id in selectedRows)
-            s_tuples.append(self.generateStock(w_id, i_id, original))
-            if len(s_tuples) >= self.batch_size:
-                logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
-                self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
-                s_tuples = [ ]
-            total_tuples += 1
-        ## FOR
-        if len(s_tuples) > 0:
-            logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
-            self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
     ## DEF
 
     ## ==============================================

@@ -1,0 +1,1 @@
+from gym_opgame.envs.opgame_env import OptimizationGameEnv

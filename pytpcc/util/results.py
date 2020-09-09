@@ -125,6 +125,7 @@ class Results:
         ret += "\n" + ("-"*total_width)
         total_rate = "%.02f txn/s" % ((total_cnt / total_time))
         ret += f % ("TOTAL", str(total_cnt), str(total_time * 1000000), total_rate)
-
+        self.total_commit = total_cnt
+        self.total_rate = (total_cnt / total_time)
         return (ret.encode('utf-8'))
 ## CLASS

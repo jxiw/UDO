@@ -70,12 +70,16 @@ class ScaleParameters:
         self.ending_warehouse = (self.warehouses + self.starting_warehouse - 1)
     ## DEF
 
+    def changeInvokeOrder(self, order):
+        self.order = order
+
     def __str__(self):
         out =  "%d items\n" % self.items
         out += "%d warehouses\n" % self.warehouses
         out += "%d districts/warehouse\n" % self.districtsPerWarehouse
         out += "%d customers/district\n" % self.customersPerDistrict
         out += "%d initial new orders/district" % self.newOrdersPerDistrict
+        out += "%s invoke order" % str(self.order)
         return out
     ## DEF
 

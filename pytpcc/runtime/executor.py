@@ -102,7 +102,7 @@ class Executor:
         else: ## 45%
             assert x > 100 - 45
             txn, params = (constants.TransactionTypes.NEW_ORDER, self.generateNewOrderParams())
-        
+        params["order"] = self.scaleParameters.order
         return (txn, params)
     ## DEF
 

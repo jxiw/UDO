@@ -1,6 +1,7 @@
 import gym
+import gym_opgame
 
-env = gym.make('CartPole-v0')
+env = gym.make('opgame-v0')
 episode_count = 100
 reward = 0
 done = False
