@@ -73,6 +73,9 @@ class ScaleParameters:
     def changeInvokeOrder(self, order):
         self.order = order
 
+    def changeInvokeCopy(self, copy):
+        self.copy = copy
+
     def __str__(self):
         out =  "%d items\n" % self.items
         out += "%d warehouses\n" % self.warehouses

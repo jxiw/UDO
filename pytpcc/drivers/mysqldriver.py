@@ -27,7 +27,8 @@ TXN_QUERIES = {
     },
     "NEW_ORDER": {
         "getWarehouseTaxRate": "SELECT W_TAX FROM WAREHOUSE WHERE W_ID = %s",  # w_id
-        "getDistrict": "SELECT D_TAX, D_NEXT_O_ID FROM DISTRICT WHERE D_ID = %s AND D_W_ID = %s",  # d_id, w_id
+        "getDistrict": "SELECT D_TAX, D_NEXT_O_ID FROM DISTRICT WHERE D_ID = %s AND D_W_ID = %s FOR UPDATE",
+        # d_id, w_id
         "incrementNextOrderId": "UPDATE DISTRICT SET D_NEXT_O_ID = %s WHERE D_ID = %s AND D_W_ID = %s",
         # d_next_o_id, d_id, w_id
         "getCustomer": "SELECT C_DISCOUNT, C_LAST, C_CREDIT FROM CUSTOMER WHERE C_W_ID = %s AND C_D_ID = %s AND C_ID = %s",
@@ -36,7 +37,7 @@ TXN_QUERIES = {
         # d_next_o_id, d_id, w_id, c_id, o_entry_d, o_carrier_id, o_ol_cnt, o_all_local
         "createNewOrder": "INSERT INTO NEW_ORDER (NO_O_ID, NO_D_ID, NO_W_ID) VALUES (%s, %s, %s)",  # o_id, d_id, w_id
         "getItemInfo": "SELECT I_PRICE, I_NAME, I_DATA FROM ITEM WHERE I_ID = %s",  # ol_i_id
-        "getStockInfo": "SELECT S_QUANTITY, S_DATA, S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DIST_%02d FROM STOCK WHERE S_I_ID = %s AND S_W_ID = %s",
+        "getStockInfo": "SELECT S_QUANTITY, S_DATA, S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DIST_%02d FROM STOCK WHERE S_I_ID = %s AND S_W_ID = %s FOR UPDATE",
         # d_id, ol_i_id, ol_supply_w_id
         "updateStock": "UPDATE STOCK SET S_QUANTITY = %s, S_YTD = %s, S_ORDER_CNT = %s, S_REMOTE_CNT = %s WHERE S_I_ID = %s AND S_W_ID = %s",
         # s_quantity, s_order_cnt, s_remote_cnt, ol_i_id, ol_supply_w_id
@@ -88,6 +89,7 @@ TXN_QUERIES = {
         """,
     },
 }
+
 
 # delivery_order = ["getNewOrder", "deleteNewOrder", "getCId", "updateOrders", "updateOrderLine", "sumOLAmount",
 #                   "updateCustomer"]
@@ -151,6 +153,67 @@ class MysqlDriver(AbstractDriver):
         self.conn.commit()
         return
 
+    def copyTable(self):
+        table_copy = 8
+        for i in range(table_copy):
+            self.cursor.execute("DROP TABLE IF EXISTS HISTORY%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS NEW_ORDER%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS ORDER_LINE%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS OORDER%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS CUSTOMER%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS DISTRICT%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS STOCK%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS ITEM%d" % i)
+            self.cursor.execute("DROP TABLE IF EXISTS WAREHOUSE%d" % i)
+            self.cursor.execute("CREATE TABLE CUSTOMER%d LIKE CUSTOMER" % i)
+            self.cursor.execute("CREATE TABLE DISTRICT%d LIKE DISTRICT" % i)
+            self.cursor.execute("CREATE TABLE HISTORY%d LIKE HISTORY" % i)
+            self.cursor.execute("CREATE TABLE ITEM%d LIKE ITEM" % i)
+            self.cursor.execute("CREATE TABLE NEW_ORDER%d LIKE NEW_ORDER" % i)
+            self.cursor.execute("CREATE TABLE OORDER%d LIKE OORDER" % i)
+            self.cursor.execute("CREATE TABLE ORDER_LINE%d LIKE ORDER_LINE" % i)
+            self.cursor.execute("CREATE TABLE STOCK%d LIKE STOCK" % i)
+            self.cursor.execute("CREATE TABLE WAREHOUSE%d LIKE WAREHOUSE" % i)
+            self.cursor.execute("INSERT INTO CUSTOMER%d SELECT * FROM CUSTOMER" % i)
+            self.cursor.execute("INSERT INTO DISTRICT%d SELECT * FROM DISTRICT" % i)
+            self.cursor.execute("INSERT INTO HISTORY%d SELECT * FROM HISTORY" % i)
+            self.cursor.execute("INSERT INTO ITEM%d SELECT * FROM ITEM" % i)
+            self.cursor.execute("INSERT INTO NEW_ORDER%d SELECT * FROM NEW_ORDER" % i)
+            self.cursor.execute("INSERT INTO OORDER%d SELECT * FROM OORDER" % i)
+            self.cursor.execute("INSERT INTO ORDER_LINE%d SELECT * FROM ORDER_LINE" % i)
+            self.cursor.execute("INSERT INTO STOCK%d SELECT * FROM STOCK" % i)
+            self.cursor.execute("INSERT INTO WAREHOUSE%d SELECT * FROM WAREHOUSE" % i)
+            self.cursor.execute(
+                "ALTER TABLE DISTRICT%d ADD CONSTRAINT FKEY_DISTRICT_1%d FOREIGN KEY(D_W_ID) REFERENCES WAREHOUSE%d(W_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE CUSTOMER%d ADD CONSTRAINT FKEY_CUSTOMER_1%d FOREIGN KEY(C_W_ID,C_D_ID) REFERENCES DISTRICT%d(D_W_ID,D_ID)  ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE HISTORY%d ADD CONSTRAINT FKEY_HISTORY_1%d FOREIGN KEY(H_C_W_ID,H_C_D_ID,H_C_ID) REFERENCES CUSTOMER%d(C_W_ID,C_D_ID,C_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE HISTORY%d ADD CONSTRAINT FKEY_HISTORY_2%d FOREIGN KEY(H_W_ID,H_D_ID) REFERENCES DISTRICT%d(D_W_ID,D_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE NEW_ORDER%d ADD CONSTRAINT FKEY_NEW_ORDER_1%d FOREIGN KEY(NO_W_ID,NO_D_ID,NO_O_ID) REFERENCES OORDER%d(O_W_ID,O_D_ID,O_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE OORDER%d ADD CONSTRAINT FKEY_ORDER_1%d FOREIGN KEY(O_W_ID,O_D_ID,O_C_ID) REFERENCES CUSTOMER%d(C_W_ID,C_D_ID,C_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE ORDER_LINE%d ADD CONSTRAINT FKEY_ORDER_LINE_1%d FOREIGN KEY(OL_W_ID,OL_D_ID,OL_O_ID) REFERENCES OORDER%d(O_W_ID,O_D_ID,O_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE ORDER_LINE%d ADD CONSTRAINT FKEY_ORDER_LINE_2%d FOREIGN KEY(OL_SUPPLY_W_ID,OL_I_ID) REFERENCES STOCK%d(S_W_ID,S_I_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE STOCK%d ADD CONSTRAINT FKEY_STOCK_1%d FOREIGN KEY(S_W_ID) REFERENCES WAREHOUSE%d(W_ID) ON DELETE CASCADE" % (
+                i, i, i))
+            self.cursor.execute(
+                "ALTER TABLE STOCK%d ADD CONSTRAINT FKEY_STOCK_2%d FOREIGN KEY(S_I_ID) REFERENCES ITEM%d(I_ID) ON DELETE CASCADE" % (
+                i, i, i))
+
     # ## ==============================================
     # ## loadStart
     # ## ==============================================
@@ -168,8 +231,6 @@ class MysqlDriver(AbstractDriver):
 
         # invoke order of that transaction
         invoke_order = params["order"]["delivery_order"]
-        print "invoke_order"
-        print invoke_order
         result = []
         # whether need to initialize variable
         for d_id in range(1, constants.DISTRICTS_PER_WAREHOUSE + 1):

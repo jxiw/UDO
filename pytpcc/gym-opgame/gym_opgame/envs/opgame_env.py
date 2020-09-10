@@ -151,6 +151,7 @@ class OptimizationGameEnv(gym.Env):
         print(results.show())
         reward = results.total_commit
         # invoke index selection
+        # create indices for the given table copies
 
         # invoke parameter change
 
