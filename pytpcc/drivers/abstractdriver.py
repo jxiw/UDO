@@ -94,7 +94,20 @@ class AbstractDriver(object):
     def executeFinish(self):
         """Callback after the execution phase finishes"""
         return None
-        
+
+    ### to change api
+    def buildIndex(self, index_creation_sql):
+        """build index"""
+        return None
+
+    def dropIndex(self, index_drop_sql):
+        """drop index"""
+        return None
+
+    def setSystemParameter(self, parameter_sql):
+        """set system parameter"""
+        return None
+
     def executeTransaction(self, txn, params):
         """Execute a transaction based on the given name"""
         

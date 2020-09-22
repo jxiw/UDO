@@ -170,6 +170,21 @@ def executorFunc(driverClass, scaleParameters, args, config, debug):
     return results
 ## DEF
 
+def prepareIndex(driverClass, index_sql):
+    driver = driverClass(args['ddl'])
+    assert driver != None
+    driver.buildIndex(index_sql)
+
+def dropIndex(driverClass, index_sql):
+    driver = driverClass(args['ddl'])
+    assert driver != None
+    driver.dropIndex(index_sql)
+
+def prepareSystemParameter(driverClass, parameter_sql):
+    driver = driverClass(args['ddl'])
+    assert driver != None
+    driver.setSystemParameter(parameter_sql)
+
 ## ==============================================
 ## main
 ## ==============================================

@@ -95,17 +95,24 @@ def one_step_lookahead(env, state, V , discount_factor = 0.99):
     """
     
     # initialize vector of action values
-    action_values = np.zeros(env.nA)
-    
-    # loop over the actions we can take in an enviorment 
-    for action in range(env.nA):
+    actions = env.choose_all_actions(state)
+    # print actions
+    action_num = len(actions)
+    action_values = np.zeros(action_num)
+    # print state
+    # loop over the actions we can take in an environment
+    for action_idx in range(action_num):
         # loop over the P_sa distribution.
-        for probablity, next_state, reward, info in env.P[state][action]:
-             #if we are in state s and take action a. then sum over all the possible states we can land into.
-            action_values[action] += probablity * (reward + (discount_factor * V[next_state]))
-            
-    return action_values
+        action = actions[action_idx]
+        next_state, reward, info1, info2 = env.one_step(state, action)
+        next_state_idx = env.map_state_to_num(next_state)
+        # if we are in state s and take action a. then sum over all the possible states we can land into.
+        # print action_idx
+        print next_state
+        print next_state_idx
+        action_values[action_idx] += reward + (discount_factor * V[next_state_idx])
 
+    return action_values
 
 # In[5]:
 
@@ -124,10 +131,10 @@ def update_policy(env, policy, V, discount_factor):
         policy: Updated policy based on the given state-Value function 'V'.
     """
     
-    for state in range(env.nS):
+    for state_num in range(env.nS):
         # for a given state compute state-action value.
+        state = env.map_number_to_state(state_num)
         action_values = one_step_lookahead(env, state, V, discount_factor)
-        
         # choose the action which maximizez the state-action value.
         policy[state] =  np.argmax(action_values)
         
@@ -162,12 +169,13 @@ def value_iteration(env, discount_factor = 0.999, max_iteration = 1000):
         prev_v = np.copy(V) 
     
         # loop over all states
-        for state in range(env.nS):
+        for state_num in range(env.nS):
             
             # Asynchronously update the state-action value
-            #action_values = one_step_lookahead(env, state, V, discount_factor)
+            # action_values = one_step_lookahead(env, state, V, discount_factor)
             
             # Synchronously update the state-action value
+            state = env.map_number_to_state(state_num)
             action_values = one_step_lookahead(env, state, prev_v, discount_factor)
             
             # select best action to perform based on highest state-action value

@@ -543,4 +543,19 @@ class MysqlDriver(AbstractDriver):
 
         return int(result[0])
 
+    def buildIndex(self, index_creation_sql):
+        """build index"""
+        logging.debug("create index %s" % index_creation_sql)
+        self.cursor.execute(index_creation_sql)
+
+    def dropIndex(self, index_drop_sql):
+        """drop index"""
+        logging.debug("drop index %s" % index_drop_sql)
+        self.cursor.execute(index_drop_sql)
+
+    def setSystemParameter(self, parameter_sql):
+        """parameter change"""
+        logging.debug("change system parameter %s" % parameter_sql)
+        self.cursor.execute(parameter_sql)
+
 ## CLASS
