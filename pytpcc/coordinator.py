@@ -38,7 +38,7 @@ import pickle
 import execnet
 import worker
 import message
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 from pprint import pprint,pformat
 
 from util import *
@@ -80,7 +80,7 @@ def startLoading(scalParameters,args,config,channels):
     for w_id in range(scaleParameters.starting_warehouse, scaleParameters.ending_warehouse+1):
         idx = w_id % procs
         w_ids[idx].append(w_id)
-    print w_ids
+    print(w_ids)
         
     load_start=time.time()
     for i in range(len(channels)):

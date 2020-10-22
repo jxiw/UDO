@@ -35,7 +35,7 @@ import argparse
 import glob
 import time 
 import multiprocessing
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 from pprint import pprint,pformat
 
 from util import *
@@ -114,7 +114,8 @@ def loaderFunc(driverClass, scaleParameters, args, config, w_ids, debug):
         driver.loadFinish()   
     except KeyboardInterrupt:
             return -1
-    except (Exception, AssertionError), ex:
+    except (Exception, AssertionError) as\
+            ex:
         logging.warn("Failed to load data: %s" % (ex))
         #if debug:
         traceback.print_exc(file=sys.stdout)
@@ -232,7 +233,7 @@ if __name__ == '__main__':
     logging.info("Initializing TPC-C benchmark using %s" % driver)
 
     ## Create ScaleParameters
-    scaleParameters = scaleparameters.makeWithScaleFactor(args['warehouses'], args['scalefactor'], [1, 2, 3])
+    scaleParameters = scaleparameters.makeWithScaleFactor(args['warehouses'], args['scalefactor'])
     nurand = rand.setNURand(nurand.makeForLoad())
     if args['debug']: logging.debug("Scale Parameters:\n%s" % scaleParameters)
     
@@ -261,7 +262,7 @@ if __name__ == '__main__':
         else:
             results = startExecution(driverClass, scaleParameters, args, config)
         assert results
-        print results.show(load_time)
+        print(results.show(load_time))
     ## IF
     
 ## MAIN

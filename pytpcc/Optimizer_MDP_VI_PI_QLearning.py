@@ -20,7 +20,7 @@ import time
 
 # In[3]:
 
-def play_episodes(enviorment, n_episodes, policy, random = False):
+def play_episodes(env, n_episodes, policy, random = False):
     """
     This fucntion plays the given number of episodes given by following a policy or sample randomly from action_space.
     
@@ -46,20 +46,20 @@ def play_episodes(enviorment, n_episodes, policy, random = False):
         terminated = False
         
         # reset the enviorment every time when playing a new episode
-        state = enviorment.reset()
+        state = env.reset()
         
         while not terminated:
             
             # check if the random flag is not true then follow the given policy other wise take random action
             if random:
-                action = enviorment.cho
+                action = env.cho
             else:
                 action = policy[state]
 
             # take the next step
-            next_state, reward,  terminated, info = enviorment.step(action)
+            next_state, reward,  terminated, info = env.step(action)
             
-            enviorment.render()
+            env.render()
             
             # accumalate total reward
             total_reward += reward
@@ -145,7 +145,7 @@ def update_policy(env, policy, V, discount_factor):
 # In[6]:
 
 
-def value_iteration(env, discount_factor = 0.999, max_iteration = 1000):
+def value_iteration(env, discount_factor = 0.999, max_iteration = 100):
     """
     Algorithm to solve MDP.
     
@@ -164,6 +164,9 @@ def value_iteration(env, discount_factor = 0.999, max_iteration = 1000):
     
     # iterate over max_iterations
     for i in range(max_iteration):
+
+        print "iteration:"
+        print i
         
         #  keep track of change with previous value function
         prev_v = np.copy(V) 
@@ -182,7 +185,7 @@ def value_iteration(env, discount_factor = 0.999, max_iteration = 1000):
             best_action_value = np.max(action_values)
             
             # update the current state-value fucntion
-            V[state] =  best_action_value
+            V[state_num] =  best_action_value
             
         # if policy not changed over 10 iterations it converged.
         if i % 10 == 0:
@@ -207,7 +210,7 @@ def value_iteration(env, discount_factor = 0.999, max_iteration = 1000):
 
 env = gym.make('opgame-v0')
 tic = time.time()
-opt_V, opt_Policy = value_iteration(env, max_iteration = 1000)
+opt_V, opt_Policy = value_iteration(env, max_iteration = 100)
 toc = time.time()
 elapsed_time = (toc - tic) * 1000
 print ("Time to converge: {elapsed_time: 0.3} ms")
@@ -223,7 +226,7 @@ print(opt_Policy)
 
 
 n_episode = 10
-total_reward, avg_reward = play_episodes(environment, n_episode, opt_Policy, random = False)
+total_reward, avg_reward = play_episodes(env, n_episode, opt_Policy, random = False)
 
 
 # In[9]:
@@ -231,106 +234,104 @@ total_reward, avg_reward = play_episodes(environment, n_episode, opt_Policy, ran
 print("Average rewards with value iteration: {avg_reward}")
 
 
-# ## 4. Implement Policy Iteration (PI)
-
-# In[10]:
-
-
-def policy_eval(env, policy, V, discount_factor):
-    """
-    Helper function to evaluate a policy.
-    
-    Arguments:
-        env: openAI GYM Enviorment object.
-        policy: policy to evaluate.
-        V: Estimated Value for each state. Vector of length nS.
-        discount_factor: MDP discount factor.
-    Return:
-        policy_value: Estimated value of each state following a given policy and state-value 'V'. 
-        
-    """
-    policy_value = np.zeros(env.nS)
-    for state, action in enumerate(policy):
-        for probablity, next_state, reward, info in env.P[state][action]:
-            policy_value[state] += probablity * (reward + (discount_factor * V[next_state]))
-            
-    return policy_value
-
-
-# In[11]:
-
-
-def policy_iteration(env, discount_factor = 0.999, max_iteration = 1000):
-    """
-    Algorithm to solve MPD.
-    
-    Arguments:
-        env: openAI GYM Enviorment object.
-        discount_factor: MDP discount factor.
-        max_iteration: Maximum No.  of iterations to run.
-        
-    Return:
-        V: Optimal state-Value function. Vector of lenth nS.
-        new_policy: Optimal policy. Vector of length nS.
-    
-    """
-    # intialize the state-Value function
-    V = np.zeros(env.nS)
-    
-    # intialize a random policy
-    policy = np.random.randint(0, 4, env.nS)
-    policy_prev = np.copy(policy)
-    
-    for i in range(max_iteration):
-        
-        # evaluate given policy
-        V = policy_eval(env, policy, V, discount_factor)
-        
-        # improve policy
-        policy = update_policy(env, policy, V, discount_factor)
-        
-        # if policy not changed over 10 iterations it converged.
-        if i % 10 == 0:
-            if (np.all(np.equal(policy, policy_prev))):
-                print('policy converged at iteration %d' %(i+1))
-                break
-            policy_prev = np.copy(policy)
-            
-
-            
-    return V, policy
-
-
-# ## Run PI Runn..
-
-# In[12]:
-
-
-enviorment2 = gym.make('opgame-v0')
-tic = time.time()
-opt_V2, opt_policy2 = policy_iteration(enviorment2.env, discount_factor = 0.999, max_iteration = 10000)
-toc = time.time()
-elapsed_time = (toc - tic) * 1000
-print ("Time to converge: {elapsed_time: 0.3} ms")
-print('Optimal Value function: ')
-print(opt_V2.reshape((4, 4)))
-print('Final Policy: ')
-print(opt_policy2.reshape(4,4))
-
-
-# ## Let's Play Now
-
-# In[13]:
-
-
-n_episode = 10
-total_reward, avg_reward = play_episodes(enviorment2, n_episode, opt_policy2, random = False)
-
-
-# In[14]:
-
-
-print("Average rewards with Policy iteration: {avg_reward}")
+# # ## 4. Implement Policy Iteration (PI)
+#
+# # In[10]:
+#
+#
+# def policy_eval(env, policy, V, discount_factor):
+#     """
+#     Helper function to evaluate a policy.
+#
+#     Arguments:
+#         env: openAI GYM Enviorment object.
+#         policy: policy to evaluate.
+#         V: Estimated Value for each state. Vector of length nS.
+#         discount_factor: MDP discount factor.
+#     Return:
+#         policy_value: Estimated value of each state following a given policy and state-value 'V'.
+#
+#     """
+#     policy_value = np.zeros(env.nS)
+#     for state, action in enumerate(policy):
+#         for probablity, next_state, reward, info in env.P[state][action]:
+#             policy_value[state] += probablity * (reward + (discount_factor * V[next_state]))
+#
+#     return policy_value
+#
+#
+# # In[11]:
+#
+#
+# def policy_iteration(env, discount_factor = 0.999, max_iteration = 1000):
+#     """
+#     Algorithm to solve MPD.
+#
+#     Arguments:
+#         env: openAI GYM Enviorment object.
+#         discount_factor: MDP discount factor.
+#         max_iteration: Maximum No.  of iterations to run.
+#
+#     Return:
+#         V: Optimal state-Value function. Vector of lenth nS.
+#         new_policy: Optimal policy. Vector of length nS.
+#
+#     """
+#     # intialize the state-Value function
+#     V = np.zeros(env.nS)
+#
+#     # intialize a random policy
+#     policy = np.random.randint(0, 4, env.nS)
+#     policy_prev = np.copy(policy)
+#
+#     for i in range(max_iteration):
+#
+#         # evaluate given policy
+#         V = policy_eval(env, policy, V, discount_factor)
+#
+#         # improve policy
+#         policy = update_policy(env, policy, V, discount_factor)
+#
+#         # if policy not changed over 10 iterations it converged.
+#         if i % 10 == 0:
+#             if (np.all(np.equal(policy, policy_prev))):
+#                 print('policy converged at iteration %d' %(i+1))
+#                 break
+#             policy_prev = np.copy(policy)
+#
+#     return V, policy
+#
+#
+# # ## Run PI Runn..
+#
+# # In[12]:
+#
+#
+# env = gym.make('opgame-v0')
+# tic = time.time()
+# opt_V2, opt_policy2 = policy_iteration(env, discount_factor = 0.999, max_iteration = 1000)
+# toc = time.time()
+# elapsed_time = (toc - tic) * 1000
+# print ("Time to converge: {elapsed_time: 0.3} ms")
+# print('Optimal Value function: ')
+# print(opt_V2.reshape((4, 4)))
+# print('Final Policy: ')
+# print(opt_policy2.reshape(4,4))
+#
+#
+# # ## Let's Play Now
+#
+# # In[13]:
+#
+#
+# n_episode = 10
+# total_reward, avg_reward = play_episodes(env, n_episode, opt_policy2, random = False)
+#
+#
+# # In[14]:
+#
+#
+# print("Average rewards with Policy iteration: {avg_reward}")
 
 
 # ## 5. Implementation of Q-learning
@@ -338,9 +339,7 @@ print("Average rewards with Policy iteration: {avg_reward}")
 # In[15]:
 
 
-def QLearning(environment, gamma, epsilon, decay, max_iteration):
-    
-    env = environment.env
+def QLearning(env, gamma, epsilon, decay, max_iteration):
     
     # intialize a random policy
     policy = np.random.randint(0, 4, env.nS)
@@ -348,7 +347,8 @@ def QLearning(environment, gamma, epsilon, decay, max_iteration):
     
     Q = np.random.rand(env.nS, env.nA).tolist()
     terminated = False
-    state = environment.reset()
+    state = env.reset()
+    state_idx = env.map_state_to_num(state)
     steps = 0
 
     for steps in range(max_iteration):
@@ -359,20 +359,24 @@ def QLearning(environment, gamma, epsilon, decay, max_iteration):
         # count steps to finish game
         steps += 1
 
+        # state_idx = env.choose_all_actions(state)
+
         # act randomly sometimes to allow exploration
         if np.random.uniform() < epsilon:
-            action = np.random.choice(env.nA)
+            action = env.choose_all_actions(state)
+            action_idx = env.map_state_to_num(state)
+            # action = np.random.choice(env.nA)
         # if not select max action in Qtable (act greedy)
         else:
-            action = Q[state].index(max(Q[state]))
+            action_idx = Q[state].index(max(Q[state]))
 
         # take the next step
-        next_state, reward,  terminated, info = environment.step(action)
+        next_state, reward,  terminated, info = env.step(action)
             
         #environment.render()
 
         # update qtable value with Bellman equation
-        Q[state][action] = reward + gamma * max(Q[next_state])
+        Q[state][action_idx] = reward + gamma * max(Q[next_state])
 
         # update state
         state = next_state
@@ -397,11 +401,11 @@ def QLearning(environment, gamma, epsilon, decay, max_iteration):
 
 import os
 
-enviormentq = gym.make('opgame-v0')
+envq = gym.make('opgame-v0')
 tic = time.time()
 
 # hyperparameters
-opt_policy_q, opt_Q= QLearning(enviormentq, gamma = 0.999, epsilon = 0.1, decay = 0.0, max_iteration=1000)
+opt_policy_q, opt_Q= QLearning(envq, gamma = 0.999, epsilon = 0.1, decay = 0.0, max_iteration=1000)
 
 toc = time.time()
 elapsed_time = (toc - tic) * 1000
@@ -420,7 +424,7 @@ print(opt_policy_q)
 
 
 n_episode = 10
-total_reward, avg_reward = play_episodes(enviormentq, n_episode, opt_policy2, random = False)
+total_reward, avg_reward = play_episodes(envq, n_episode, opt_policy_q, random = False)
 
 
 # In[18]:

@@ -38,6 +38,8 @@ import logging
 from datetime import datetime
 from pprint import pprint,pformat
 
+import MySQLdb
+
 import constants
 from util import *
 
@@ -66,8 +68,13 @@ class Executor:
                 val = self.driver.executeTransaction(txn, params)
             except KeyboardInterrupt:
                 return -1
-            except (Exception, AssertionError), ex:
-                logging.warn("Failed to execute Transaction '%s': %s" % (txn, ex))
+            except MySQLdb.OperationalError as ex:
+                (error_code, msg) = ex.args
+                if error_code != 1213:
+                    # except deadlock error
+                    raise
+            except (Exception, AssertionError) as ex:
+                # logging.warn("Failed to execute Transaction '%s': %s" % (txn, ex))
                 if debug: traceback.print_exc(file=sys.stdout)
                 if self.stop_on_error: raise
                 r.abortTransaction(txn_id)
@@ -102,7 +109,7 @@ class Executor:
         else: ## 45%
             assert x > 100 - 45
             txn, params = (constants.TransactionTypes.NEW_ORDER, self.generateNewOrderParams())
-        params["order"] = self.scaleParameters.order
+        params["procInfo"] = self.scaleParameters.procInfo
         return (txn, params)
     ## DEF
 

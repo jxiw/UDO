@@ -1,10 +1,9 @@
 
 candidate_dbms_parameter = [
     [
-        "set global innodb_buffer_pool_size = 10737418240;",
-        "set global innodb_buffer_pool_size = 32212254720",
-        "set global innodb_buffer_pool_size = 53687091200;",
-        "set global innodb_buffer_pool_size = 75161927680;"
+        "set global innodb_buffer_pool_size =  53687091200;",
+        "set global innodb_buffer_pool_size =  75161927680;",
+        "set global innodb_buffer_pool_size = 112742891520;"
     ], [
         "set max_heap_table_size = 10737418240;",
         "set max_heap_table_size = 32212254720;",

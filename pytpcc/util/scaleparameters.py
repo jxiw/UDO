@@ -70,8 +70,8 @@ class ScaleParameters:
         self.ending_warehouse = (self.warehouses + self.starting_warehouse - 1)
     ## DEF
 
-    def changeInvokeOrder(self, order):
-        self.order = order
+    def changeInvokeProcedure(self, procInfo):
+        self.procInfo = procInfo
 
     def changeInvokeCopy(self, copy):
         self.copy = copy
@@ -82,7 +82,7 @@ class ScaleParameters:
         out += "%d districts/warehouse\n" % self.districtsPerWarehouse
         out += "%d customers/district\n" % self.customersPerDistrict
         out += "%d initial new orders/district" % self.newOrdersPerDistrict
-        out += "%s invoke order" % str(self.order)
+        # out += "%s invoke order" % str(self.order)
         return out
     ## DEF
 

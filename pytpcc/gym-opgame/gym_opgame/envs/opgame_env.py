@@ -10,8 +10,8 @@ import tpcc
 from util import *
 import itertools
 import time
-import parameter
-import index
+from . import parameter
+from . import index
 from tpcc import loader
 
 
@@ -35,118 +35,95 @@ class OptimizationGameEnv(gym.Env):
         # print permutation_with_constraint
         return permutation_with_constraint
 
-    def appendUnconsiderUnit(self, order, unit, total_unit):
-        if unit < total_unit:
-            for i in range(unit, total_unit):
-                order.append(i)
+    def check_constraint(self, constraints, prev_unit, next_unit):
+        for constraint in constraints:
+            if constraint[0] == prev_unit and constraint[1] == next_unit:
+                return False
+        return True
 
     def __init__(self):
         # init
         super(OptimizationGameEnv, self).__init__()
 
         # the reorder unit of each transaction
-        self.payment_total_unit = 7
-        self.delivery_total_unit = 7
-        self.new_order_total_unit = 5
-
-        self.payment_unit = 4
-        self.delivery_unit = 4
-        self.new_order_unit = 2
+        self.payment_unit = 7
+        self.delivery_unit = 7
+        self.new_order_unit = 5
+        self.reorder_unit = self.payment_unit + self.delivery_unit + self.new_order_unit
 
         self.payment_unit_constraint = [(4, 5), (0, 6), (2, 6), (4, 6)]
         self.delivery_unit_constraint = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (2, 6), (5, 6)]
         self.new_order_unit_constraint = [(2, 3), (2, 4), (3, 4)]
 
-        #
-        # if self.delivery_unit < self.delivery_total_unit:
-        #     for i in range(self.delivery_unit, self.delivery_total_unit):
-        #         delivery_order.append(i)
-        #
-        # if self.new_order_unit < self.new_order_total_unit:
-        #     for i in range(self.new_order_unit, self.new_order_total_unit):
-        #         new_order_order.append(i)
-
         payment_all_permutation = itertools.permutations(range(self.payment_unit))
         self.validate_payment_permutation = self.filterPermutationWithConstraint(payment_all_permutation,
                                                                                  self.payment_unit_constraint)
-        for order in self.validate_payment_permutation:
-            self.appendUnconsiderUnit(order, self.payment_unit, self.payment_total_unit)
 
-        # self.payment_permutation_to_position = {key: value for value, key in
-        #                                         enumerate(self.validate_payment_permutation)}
+        self.payment_permutation_to_position = {''.join([str(x) for x in value]): key for key, value in
+                                                enumerate(self.validate_payment_permutation)}
 
         delivery_all_permutation = itertools.permutations(range(0, self.delivery_unit))
         self.validate_delivery_permutation = self.filterPermutationWithConstraint(delivery_all_permutation,
                                                                                   self.delivery_unit_constraint)
-        for order in self.validate_delivery_permutation:
-            self.appendUnconsiderUnit(order, self.delivery_unit, self.delivery_total_unit)
 
-        # self.delivery_permutation_to_position = {key: value for value, key in
-        #                                          enumerate(self.validate_delivery_permutation)}
+        self.delivery_permutation_to_position = {''.join([str(x) for x in value]): key for key, value in
+                                                 enumerate(self.validate_delivery_permutation)}
 
         new_order_all_permutation = itertools.permutations(range(0, self.new_order_unit))
         self.validate_new_order_permutation = self.filterPermutationWithConstraint(new_order_all_permutation,
                                                                                    self.new_order_unit_constraint)
-        for order in self.validate_new_order_permutation:
-            self.appendUnconsiderUnit(order, self.new_order_unit, self.new_order_total_unit)
 
-        # self.new_order_permutation_to_position = {key: value for value, key in
-        #                                           enumerate(self.validate_new_order_permutation)}
+        self.new_order_permutation_to_position = {''.join([str(x) for x in value]): key for key, value in
+                                                  enumerate(self.validate_new_order_permutation)}
 
-        # print self.validate_new_order_permutation
-        self.reorder_action_space = spaces.Tuple((spaces.Discrete(self.payment_unit - 1),
-                                                  spaces.Discrete(self.delivery_unit - 1),
-                                                  spaces.Discrete(self.new_order_unit - 1)))
+        print (self.new_order_permutation_to_position)
 
         # index action space
-        self.index_candidate = 3
-        self.index_space = spaces.Discrete(self.index_candidate)
+        # total number of indices to consider is 20
+        self.index_candidate = 15
 
         # parameter action space
         # e.g., the first parameter has 4 choices, the second parameter has 4 choices, and the third and fourth parameter has 4 choices
-        self.parameter_candidate = [2, 2, 2, 2]
+        self.parameter_candidate = np.array([3, 4, 4, 4])
         self.parameter_candidate_num = len(self.parameter_candidate)
-        self.parameter_candidate_total_choice = sum(self.parameter_candidate)
-        self.nS_parameter = np.prod(self.parameter_candidate)
-        self.parameter_space = spaces.MultiDiscrete([self.parameter_candidate_num, max(self.parameter_candidate)])
 
         # combine the actions from 3 sub actions
         # define action and observation space
-        self.action_space = spaces.Tuple((self.reorder_action_space, self.index_space, self.parameter_space))
-
-        self.reorder_observation_space = spaces.Tuple((spaces.MultiDiscrete(self.payment_unit),
-                                                       spaces.MultiDiscrete(self.delivery_unit),
-                                                       spaces.MultiDiscrete(self.new_order_unit)))
-
-        self.index_observation_space = spaces.MultiBinary(self.index_candidate)
-        self.parameter_observation_space = spaces.MultiDiscrete(self.parameter_candidate)
-
         self.nA_reorder_payment = self.payment_unit - 1
         self.nA_reorder_delivery = self.delivery_unit - 1
         self.nA_reorder_new_order = self.new_order_unit - 1
-        self.nA_reorder = self.nA_reorder_payment * self.nA_reorder_delivery * self.nA_reorder_new_order
-        self.nA_index = self.index_space.n
-        self.nA_parameter = self.parameter_candidate_total_choice
+        self.nA_reorder = self.nA_reorder_payment + self.nA_reorder_delivery + self.nA_reorder_new_order
+        self.nA_index = self.index_candidate
+        self.nA_parameter = sum(self.parameter_candidate)
         self.nA = int((self.nA_reorder + self.nA_index + self.nA_parameter))
+
         self.nS_payment = len(self.validate_payment_permutation)
         self.nS_delivery = len(self.validate_delivery_permutation)
-        self.nS_neworder = len(self.validate_new_order_permutation)
-        self.nS_reorder = (self.nS_payment * self.nS_delivery * self.nS_neworder)
+        self.nS_new_order = len(self.validate_new_order_permutation)
+        self.nS_reorder = (self.nS_payment * self.nS_delivery * self.nS_new_order)
         self.nS_index = math.pow(2, self.index_candidate)
-        self.nS = int(self.nS_reorder * self.nS_index * self.nS_parameter)
-        print self.nS_reorder
-        print self.nS
-        print self.nA
+        self.nS_parameter = np.prod(self.parameter_candidate)
+        self.nS = int(self.nS_reorder + self.nS_index + self.nS_parameter)
+        # action space
+        self.action_space = spaces.Discrete(self.nA)
+        # observation space
+        # self.reorder_observation_space = spaces.Tuple([spaces.MultiDiscrete(np.full(self.delivery_unit, self.delivery_unit)),
+        #                                                spaces.MultiDiscrete(np.full(self.delivery_unit, self.delivery_unit)),
+        #                                                spaces.MultiDiscrete(np.full(self.new_order_unit, self.new_order_unit))])
+        # self.index_observation_space = spaces.MultiBinary(self.index_candidate)
+        # self.parameter_observation_space = spaces.MultiDiscrete(self.parameter_candidate)
+        # self.observation_space = spaces.Tuple([self.reorder_observation_space, self.index_observation_space, self.parameter_observation_space])
 
-        # print "permutation"
-        # print self.validate_payment_permutation
-
-        # construct the transition matrix
-        # self.P = np.zeros(self.nS, self.nA)
+        # change the observation space
+        observation_space_array = np.concatenate([np.full(self.delivery_unit, self.delivery_unit),
+                                                  np.full(self.delivery_unit, self.delivery_unit),
+                                                  np.full(self.new_order_unit, self.new_order_unit),
+                                                  np.full(self.index_candidate, 1),
+                                                  self.parameter_candidate])
+        # print(observation_space_array)
+        self.observation_space = spaces.MultiDiscrete(observation_space_array)
 
         # our transition matrix is a deterministic matrix
-        self.observation_space = spaces.Tuple(
-            (self.reorder_observation_space, self.index_observation_space, self.parameter_observation_space))
         self.args = {
             'debug': False,
             'system': 'mysql',
@@ -176,6 +153,8 @@ class OptimizationGameEnv(gym.Env):
         if self.config['load']:
             logging.info("Loading TPC-C benchmark data using %s" % (self.driver))
             tpcc.startLoading(self.driverClass, self.scaleParameters, self.args, self.config)
+
+        self.current_state = None
 
     def map_number_to_state(self, num):
         reorder_pos = int(num % (self.nS_reorder))
@@ -225,12 +204,12 @@ class OptimizationGameEnv(gym.Env):
             parameter_base = parameter_base * self.parameter_candidate[i]
         # print parameter_pos
         # list can not be used as hash key.
-        print payment_pos
-        print delivery_pos
-        print new_order_pos
-        print reorder_pos
-        print index_pos
-        print parameter_pos
+        print(payment_pos)
+        print(delivery_pos)
+        print(new_order_pos)
+        print(reorder_pos)
+        print(index_pos)
+        print(parameter_pos)
         pos = reorder_pos + index_pos * self.nS_reorder + parameter_pos * self.nS_index * self.nS_reorder
         return int(pos)
 
@@ -260,9 +239,9 @@ class OptimizationGameEnv(gym.Env):
     def choose_random_action(self, state):
         ((candidate_payment_reorder_action, candidate_delivery_reorder_action, candidate_new_order_reorder_action),
          candidate_index_action, candidate_parameter_action) = self.choose_all_actions(state)
-        print candidate_payment_reorder_action
-        print candidate_delivery_reorder_action
-        print candidate_new_order_reorder_action
+        print(candidate_payment_reorder_action)
+        print(candidate_delivery_reorder_action)
+        print(candidate_new_order_reorder_action)
         # choose a parameter to switch
         # choose_parameter_type = random.randint(0, self.parameter_candidate_num - 1)
         # choose_parameter_num = random.randint(0, self.parameter_candidate[choose_parameter_type] - 1)
@@ -270,132 +249,138 @@ class OptimizationGameEnv(gym.Env):
                  random.choice(candidate_new_order_reorder_action)), random.choice(candidate_index_action),
                 random.choice(candidate_parameter_action))
 
-    def one_step(self, state, action):
-        # print state
-        # print action
-        # extract reorder action, index action and parameter action.
-        reorder_action, index_action, parameter_action = action
-        (payment_reorder_action, delivery_reorder_action, new_order_reorder_action) = reorder_action
+    def step(self, action):
+        print(action)
+        # get current state
+        state = self.current_state
+        # expand those states
+        # reorder_current_state, index_current_state, parameter_current_state = state
+        # payment_order, delivery_order, new_order_order = reorder_current_state
 
-        reorder_current_state, index_current_state, parameter_current_state = state
-        payment_order, delivery_order, new_order_order = reorder_current_state
+        payment_order = state[: self.payment_unit]
+        delivery_order = state[self.payment_unit: self.payment_unit + self.delivery_unit]
+        new_order_order = state[self.payment_unit + self.delivery_unit: self.reorder_unit]
+        index_current_state = state[self.reorder_unit : self.reorder_unit + self.index_candidate]
+        parameter_current_state = state[self.reorder_unit + self.index_candidate:]
 
         invoke_payment_order = list(payment_order)
         invoke_delivery_order = list(delivery_order)
         invoke_new_order_order = list(new_order_order)
+        # extract the action type and value
+        action_type = -1
+        if (action < self.nA_reorder_payment):
+            # the action is payment transaction reorder
+            action_type = 0
+            payment_reorder_action = action
+            prev_unit = invoke_payment_order[payment_reorder_action]
+            next_unit = invoke_payment_order[payment_reorder_action + 1]
+            # when reorder does not influence the constraint requirement
+            if (self.check_constraint(self.payment_unit_constraint, prev_unit, next_unit)):
+                invoke_payment_order[payment_reorder_action], invoke_payment_order[payment_reorder_action + 1] = \
+                    invoke_payment_order[payment_reorder_action + 1], invoke_payment_order[payment_reorder_action]
+        elif (action < self.nA_reorder_payment + self.nA_reorder_delivery):
+            action_type = 1
+            delivery_reorder_action = action - self.nA_reorder_payment
+            prev_unit = invoke_delivery_order[delivery_reorder_action]
+            next_unit = invoke_delivery_order[delivery_reorder_action + 1]
+            if (self.check_constraint(self.delivery_unit_constraint, prev_unit, next_unit)):
+                invoke_delivery_order[delivery_reorder_action], invoke_delivery_order[delivery_reorder_action + 1] = \
+                    invoke_delivery_order[delivery_reorder_action + 1], invoke_delivery_order[delivery_reorder_action]
+        elif (action < self.nA_reorder_payment + self.nA_reorder_delivery + self.nA_reorder_new_order):
+            action_type = 2
+            new_order_reorder_action = action - self.nA_reorder_payment - self.nA_reorder_delivery
+            prev_unit = invoke_new_order_order[new_order_reorder_action]
+            next_unit = invoke_new_order_order[new_order_reorder_action + 1]
+            if (self.check_constraint(self.new_order_unit_constraint, prev_unit, next_unit)):
+                invoke_new_order_order[new_order_reorder_action], invoke_new_order_order[new_order_reorder_action + 1] = \
+                    invoke_new_order_order[new_order_reorder_action + 1], invoke_new_order_order[
+                        new_order_reorder_action]
+        elif (action < self.nA_reorder + self.nA_index):
+            action_type = 3
+            index_action = action - self.nA_reorder
+            # get the index change sql, create a new index
+            index_current_state[index_action] = 1
+            index_creation_sql = index.candidate_indices_creation[index_action]
+            # index_drop_sql = index.candidate_indices_drop[index_action]
+            print(index_creation_sql)
+            self.driver.buildIndex(index_creation_sql)
+        else:
+            assert (action < self.nA_reorder + self.nA_index + self.nA_parameter)
+            action_type = 4
+            parameter_action = action - self.nA_reorder - self.nA_index
+            print(parameter_action)
+            parameter_value = 0
+            for parameter_type in range(len(self.parameter_candidate)):
+                parameter_range = self.parameter_candidate[parameter_type]
+                if parameter_action < (parameter_value + parameter_range):
+                    parameter_value = parameter_action - parameter_value
+                    break
+                parameter_value = parameter_value + parameter_range
+            parameter_current_state[parameter_type] = parameter_value
+            parameter_sql = parameter.candidate_dbms_parameter[parameter_type][parameter_value]
+            # switch system parameter
+            print(parameter_sql)
+            # get the parameter change sql, change one parameter
+            self.driver.setSystemParameter(parameter_sql)
 
-        # swap the order
-        invoke_payment_order[payment_reorder_action], invoke_payment_order[payment_reorder_action + 1] = \
-            invoke_payment_order[payment_reorder_action + 1], invoke_payment_order[payment_reorder_action]
-        invoke_delivery_order[delivery_reorder_action], invoke_delivery_order[delivery_reorder_action + 1] = \
-            invoke_delivery_order[delivery_reorder_action + 1], invoke_delivery_order[delivery_reorder_action]
-        invoke_new_order_order[new_order_reorder_action], invoke_new_order_order[new_order_reorder_action + 1] = \
-            invoke_new_order_order[new_order_reorder_action + 1], invoke_new_order_order[new_order_reorder_action]
+        print(invoke_payment_order)
+        print(invoke_new_order_order)
+        print(invoke_delivery_order)
+
+        # map invoke transaction order to procedure indentifier
+        invoke_payment_proc = self.payment_permutation_to_position[''.join([str(int(x)) for x in invoke_payment_order])]
+        invoke_delivery_proc = self.delivery_permutation_to_position[''.join([str(int(x)) for x in invoke_delivery_order])]
+        invoke_new_order_proc = self.new_order_permutation_to_position[''.join([str(int(x)) for x in invoke_new_order_order])]
 
         # invoke transaction reorder
-        invoke_orders = {"payment_order": invoke_payment_order, "delivery_order": invoke_delivery_order, "new_order_order": invoke_new_order_order}
-
-        print invoke_orders
-        self.scaleParameters.changeInvokeOrder(invoke_orders)
-
-        # get the index change sql, create a new index
-        index_current_state[index_action] = 1
-        index_creation_sql = index.candidate_indices_creation[index_action]
-        index_drop_sql = index.candidate_indices_drop[index_action]
-
-        self.driver.buildIndex(index_creation_sql)
-        # get the parameter change sql, change one parameter
-        print parameter_action
-        parameter_value = 0
-        for parameter_type in range(len(self.parameter_candidate)):
-            parameter_range = self.parameter_candidate[parameter_type]
-            if parameter_action < (parameter_value + parameter_range):
-                parameter_value = parameter_action - parameter_value
-                break
-            parameter_value = parameter_value + parameter_range
-        parameter_current_state[parameter_type] = parameter_value
-        parameter_sql = parameter.candidate_dbms_parameter[parameter_type][parameter_value]
-        # switch system parameter
-        self.driver.setSystemParameter(parameter_sql)
+        proc_info = {"payment": invoke_payment_proc, "delivery": invoke_delivery_proc, "new_order": invoke_new_order_proc}
+        print(proc_info)
+        self.scaleParameters.changeInvokeProcedure(proc_info)
 
         # invoke transaction reorder
-        results = tpcc.startExecution(self.driverClass, self.scaleParameters, self.args, self.config)
-        print "parameter state"
-        print parameter_current_state
-        print(results.show())
-        reward = results.total_commit
-        self.driver.dropIndex(index_drop_sql)
-        # invoke index selection
-        # create indices for the given table copies
+        tx_results = tpcc.startExecution(self.driverClass, self.scaleParameters, self.args, self.config)
+
+        # obtain results
+        print(tx_results.show())
+        reward = tx_results.total_commit
+
+        # clean up
+        if action_type == 3:
+            index_drop_sql = index.candidate_indices_drop[index_action]
+            self.driver.dropIndex(index_drop_sql)
+        # invoke index selection, create indices for the given table copies
 
         # invoke parameter change
         # switch to new parameter
-        next_state = ((invoke_payment_order, invoke_delivery_order, invoke_new_order_order), index_current_state, parameter_current_state)
-        return next_state, reward, None, None
-
-    def step(self, action):
-        print(action)
-        # extract reorder action, index action and parameter action.
-        reorder_action, index_action, parameter_action = action
-        (payment_reorder_action, delivery_reorder_action, new_order_reorder_action) = reorder_action
-
-        reorder_current_state, index_current_state, parameter_current_state = self.current_state
-        payment_order, delivery_order, new_order_order = reorder_current_state
-
-        # swap the order
-        payment_order[payment_reorder_action], payment_order[payment_reorder_action + 1] = payment_order[
-                                                                                               payment_reorder_action + 1], \
-                                                                                           payment_order[
-                                                                                               payment_reorder_action]
-        delivery_order[delivery_reorder_action], delivery_order[delivery_reorder_action + 1] = delivery_order[
-                                                                                                   delivery_reorder_action + 1], \
-                                                                                               delivery_order[
-                                                                                                   delivery_reorder_action]
-        new_order_order[new_order_reorder_action], new_order_order[new_order_reorder_action + 1] = new_order_order[
-                                                                                                       new_order_reorder_action + 1], \
-                                                                                                   new_order_order[
-                                                                                                       new_order_reorder_action]
-
-        # invoke transaction reorder
-        invoke_orders = {"payment_order": payment_order, "delivery_order": delivery_order,
-                         "new_order_order": new_order_order}
-        self.scaleParameters.changeInvokeOrder(invoke_orders)
-
-        # get the index change sql, create a new index
-        index_current_state[index_action] = 1
-        index_creation_sql = index.candidate_indices_creation[index_action]
-        index_drop_sql = index.candidate_indices_drop[index_action]
-        # prepare indices
-        self.driver.buildIndex(index_creation_sql)
-        print "dfdf"
-
-        # get the parameter change sql, change one parameter
-        print parameter_action
-        parameter_type, parameter_value = parameter_action
-        parameter_current_state[parameter_type] = parameter_value
-        parameter_sql = parameter.candidate_dbms_parameter[parameter_type][parameter_value]
-        # switch system parameter
-        self.driver.setSystemParameter(parameter_sql)
-
-        # invoke transaction reorder
-        results = tpcc.startExecution(self.driverClass, self.scaleParameters, self.args, self.config)
-        print(results.show())
-        reward = results.total_commit
-        self.driver.dropIndex(index_drop_sql)
-
-        # invoke parameter change
-        self.current_state = (
-            (payment_order, delivery_order, new_order_order), index_current_state, parameter_current_state)
-        return self.current_state, reward, None, None
+        next_state = np.concatenate([invoke_payment_order, invoke_delivery_order, invoke_new_order_order, index_current_state, parameter_current_state])
+        self.current_state = next_state
+        # info = {"reward": reward, "state": state}
+        info = {}
+        return next_state, reward, None, info
 
     def remove(self, s):
         print("remove")
 
     def reset(self):
+        if self.current_state != None:
+            reorder_current_state, index_current_state, parameter_current_state = self.current_state
+            # drop all indices at the current state
+            for i in range(self.index_candidate):
+                if (self.index_current_state[i] == 1):
+                    index_drop_sql = index.candidate_indices_drop[i]
+                    self.driver.dropIndex(index_drop_sql)
+            # set the parameter to default value
+
         # reset the state to init state
-        self.current_state = (
-            (np.arange(self.payment_unit), np.arange(self.delivery_unit), np.arange(self.new_order_unit)),
-            np.zeros(self.index_candidate), np.zeros(self.parameter_candidate_num))
+        # self.current_state = [
+        #     [np.arange(self.payment_unit), np.arange(self.delivery_unit), np.arange(self.new_order_unit)],
+        #     np.zeros(self.index_candidate), np.zeros(self.parameter_candidate_num)]
+
+        self.current_state = np.concatenate([np.arange(self.payment_unit),
+                              np.arange(self.delivery_unit),
+                              np.arange(self.new_order_unit),
+                              np.zeros(self.index_candidate),
+                              np.zeros(self.parameter_candidate_num)])
         return self.current_state
 
     def render(self, mode='human', close=False):

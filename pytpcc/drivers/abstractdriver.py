@@ -26,6 +26,8 @@
 
 from datetime import datetime
 
+import MySQLdb
+
 import constants
 
 ## ==============================================
@@ -110,7 +112,6 @@ class AbstractDriver(object):
 
     def executeTransaction(self, txn, params):
         """Execute a transaction based on the given name"""
-        
         if constants.TransactionTypes.DELIVERY == txn:
             result = self.doDelivery(params)
         elif constants.TransactionTypes.NEW_ORDER == txn:
