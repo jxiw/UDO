@@ -818,7 +818,7 @@ for delivery_permutation in validate_delivery_permutations:
     cursor.execute("DROP procedure IF EXISTS delivery_%d" % i)
     cursor.execute(delivery_procedure_sql)
     i += 1
-print i
+print(i)
 
 i = 0
 for payment_permutation in validate_payment_permutations:
@@ -832,7 +832,7 @@ for payment_permutation in validate_payment_permutations:
     cursor.execute("DROP procedure IF EXISTS payment_%d" % i)
     cursor.execute(payment_procedure_sql)
     i += 1
-print i
+print(i)
 
 i = 0
 for new_order_permutation in validate_new_order_permutation:
@@ -845,7 +845,7 @@ for new_order_permutation in validate_new_order_permutation:
     cursor.execute("DROP procedure IF EXISTS new_order_%d" % i)
     cursor.execute(new_order_procedure_sql)
     i += 1
-print i
+print(i)
 
 new_order_inner_procedure = '''
 CREATE PROCEDURE `new_order_inner`(in_w_id INT,

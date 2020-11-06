@@ -9,7 +9,7 @@ from .abstractdriver import *
 
 class MysqlDriver(AbstractDriver):
     DEFAULT_CONFIG = {
-        "host": ("The hostname to mysql", "localhost"),
+        "host": ("The hostname to mysql", "127.0.0.1"),
         "port": ("The port number to mysql", 3306),
         "db": ("datbase name", "tpcc_py"),
         "user": ("user name", "jw2544"),

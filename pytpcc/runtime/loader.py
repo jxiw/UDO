@@ -35,37 +35,38 @@ import sys
 import logging
 from datetime import datetime
 from random import shuffle
-from pprint import pprint,pformat
+from pprint import pprint, pformat
 
 import constants
 from util import *
 
+
 class Loader:
-    
+
     def __init__(self, handle, scaleParameters, w_ids, needLoadItems):
         self.handle = handle
         self.scaleParameters = scaleParameters
         self.w_ids = w_ids
         self.needLoadItems = needLoadItems
         self.batch_size = 2500
-        
+
     ## ==============================================
     ## execute
     ## ==============================================
     def execute(self):
-        
+
         ## Item Table
         if self.needLoadItems:
             logging.debug("Loading ITEM table")
             self.loadItems()
             self.handle.loadFinishItem()
-            
+
         ## Then create the warehouse-specific tuples
         for w_id in self.w_ids:
             self.loadWarehouse(w_id)
             self.handle.loadFinishWarehouse(w_id)
         ## FOR
-        
+
         return (None)
 
     ## ==============================================
@@ -74,22 +75,24 @@ class Loader:
     def loadItems(self):
         ## Select 10% of the rows to be marked "original"
         originalRows = rand.selectUniqueIds(self.scaleParameters.items / 10, 1, self.scaleParameters.items)
-        
+
         ## Load all of the items
-        tuples = [ ]
+        tuples = []
         total_tuples = 0
-        for i in range(1, self.scaleParameters.items+1):
+        for i in range(1, self.scaleParameters.items + 1):
             original = (i in originalRows)
             tuples.append(self.generateItem(i, original))
             total_tuples += 1
             if len(tuples) == self.batch_size:
-                logging.debug("LOAD - %s: %5d / %d" % (constants.TABLENAME_ITEM, total_tuples, self.scaleParameters.items))
+                logging.debug(
+                    "LOAD - %s: %5d / %d" % (constants.TABLENAME_ITEM, total_tuples, self.scaleParameters.items))
                 self.handle.loadTuples(constants.TABLENAME_ITEM, tuples)
-                tuples = [ ]
+                tuples = []
         ## FOR
         if len(tuples) > 0:
             logging.debug("LOAD - %s: %5d / %d" % (constants.TABLENAME_ITEM, total_tuples, self.scaleParameters.items))
             self.handle.loadTuples(constants.TABLENAME_ITEM, tuples)
+
     ## DEF
 
     ## ==============================================
@@ -97,76 +100,62 @@ class Loader:
     ## ==============================================
     def loadWarehouse(self, w_id):
         logging.debug("LOAD - %s: %d / %d" % (constants.TABLENAME_WAREHOUSE, w_id, len(self.w_ids)))
-        
+
         ## WAREHOUSE
-        w_tuples = [ self.generateWarehouse(w_id) ]
+        w_tuples = [self.generateWarehouse(w_id)]
         self.handle.loadTuples(constants.TABLENAME_WAREHOUSE, w_tuples)
 
-        ## STOCK
-        ## Select 10% of the stock to be marked "original"
-        s_tuples = [ ]
-        selectedRows = rand.selectUniqueIds(self.scaleParameters.items / 10, 1, self.scaleParameters.items)
-        total_tuples = 0
-        for i_id in range(1, self.scaleParameters.items+1):
-            original = (i_id in selectedRows)
-            s_tuples.append(self.generateStock(w_id, i_id, original))
-            if len(s_tuples) >= self.batch_size:
-                logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
-                self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
-                s_tuples = [ ]
-            total_tuples += 1
-        ## FOR
-        if len(s_tuples) > 0:
-            logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
-            self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
-
         ## DISTRICT
-        d_tuples = [ ]
-        for d_id in range(1, self.scaleParameters.districtsPerWarehouse+1):
+        d_tuples = []
+        for d_id in range(1, self.scaleParameters.districtsPerWarehouse + 1):
             d_next_o_id = self.scaleParameters.customersPerDistrict + 1
-            d_tuples = [ self.generateDistrict(w_id, d_id, d_next_o_id) ]
-            
-            c_tuples = [ ]
-            h_tuples = [ ]
-            
+            d_tuples = [self.generateDistrict(w_id, d_id, d_next_o_id)]
+
+            c_tuples = []
+            h_tuples = []
+
             ## Select 10% of the customers to have bad credit
-            selectedRows = rand.selectUniqueIds(self.scaleParameters.customersPerDistrict / 10, 1, self.scaleParameters.customersPerDistrict)
-            
+            selectedRows = rand.selectUniqueIds(self.scaleParameters.customersPerDistrict / 10, 1,
+                                                self.scaleParameters.customersPerDistrict)
+
             ## TPC-C 4.3.3.1. says that o_c_id should be a permutation of [1, 3000]. But since it
             ## is a c_id field, it seems to make sense to have it be a permutation of the
             ## customers. For the "real" thing this will be equivalent
-            cIdPermutation = [ ]
+            cIdPermutation = []
 
-            for c_id in range(1, self.scaleParameters.customersPerDistrict+1):
+            for c_id in range(1, self.scaleParameters.customersPerDistrict + 1):
                 badCredit = (c_id in selectedRows)
                 c_tuples.append(self.generateCustomer(w_id, d_id, c_id, badCredit, True))
                 h_tuples.append(self.generateHistory(w_id, d_id, c_id))
                 cIdPermutation.append(c_id)
             ## FOR
             assert cIdPermutation[0] == 1
-            assert cIdPermutation[self.scaleParameters.customersPerDistrict - 1] == self.scaleParameters.customersPerDistrict
+            assert cIdPermutation[
+                       self.scaleParameters.customersPerDistrict - 1] == self.scaleParameters.customersPerDistrict
             shuffle(cIdPermutation)
-            
-            o_tuples = [ ]
-            ol_tuples = [ ]
-            no_tuples = [ ]
-            
-            for o_id in range(1, self.scaleParameters.customersPerDistrict+1):
+
+            o_tuples = []
+            ol_tuples = []
+            no_tuples = []
+
+            for o_id in range(1, self.scaleParameters.customersPerDistrict + 1):
                 o_ol_cnt = rand.number(constants.MIN_OL_CNT, constants.MAX_OL_CNT)
-                
+
                 ## The last newOrdersPerDistrict are new orders
-                newOrder = ((self.scaleParameters.customersPerDistrict - self.scaleParameters.newOrdersPerDistrict) < o_id)
+                newOrder = ((
+                                        self.scaleParameters.customersPerDistrict - self.scaleParameters.newOrdersPerDistrict) < o_id)
                 o_tuples.append(self.generateOrder(w_id, d_id, o_id, cIdPermutation[o_id - 1], o_ol_cnt, newOrder))
 
                 ## Generate each OrderLine for the order
                 for ol_number in range(0, o_ol_cnt):
-                    ol_tuples.append(self.generateOrderLine(w_id, d_id, o_id, ol_number, self.scaleParameters.items, newOrder))
+                    ol_tuples.append(
+                        self.generateOrderLine(w_id, d_id, o_id, ol_number, self.scaleParameters.items, newOrder))
                 ## FOR
 
                 ## This is a new order: make one for it
                 if newOrder: no_tuples.append([o_id, d_id, w_id])
             ## FOR
-            
+
             self.handle.loadTuples(constants.TABLENAME_DISTRICT, d_tuples)
             self.handle.loadTuples(constants.TABLENAME_CUSTOMER, c_tuples)
             self.handle.loadTuples(constants.TABLENAME_ORDERS, o_tuples)
@@ -175,6 +164,26 @@ class Loader:
             self.handle.loadTuples(constants.TABLENAME_HISTORY, h_tuples)
             self.handle.loadFinishDistrict(w_id, d_id)
         ## FOR
+
+        ## Select 10% of the stock to be marked "original"
+        s_tuples = []
+        selectedRows = rand.selectUniqueIds(self.scaleParameters.items / 10, 1, self.scaleParameters.items)
+        total_tuples = 0
+        for i_id in range(1, self.scaleParameters.items + 1):
+            original = (i_id in selectedRows)
+            s_tuples.append(self.generateStock(w_id, i_id, original))
+            if len(s_tuples) >= self.batch_size:
+                logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (
+                constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
+                self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
+                s_tuples = []
+            total_tuples += 1
+        ## FOR
+        if len(s_tuples) > 0:
+            logging.debug("LOAD - %s [W_ID=%d]: %5d / %d" % (
+            constants.TABLENAME_STOCK, w_id, total_tuples, self.scaleParameters.items))
+            self.handle.loadTuples(constants.TABLENAME_STOCK, s_tuples)
+
     ## DEF
 
     ## ==============================================
@@ -189,6 +198,7 @@ class Loader:
         if original: i_data = self.fillOriginal(i_data)
 
         return [i_id, i_im_id, i_name, i_price, i_data]
+
     ## DEF
 
     ## ==============================================
@@ -199,6 +209,7 @@ class Loader:
         w_ytd = constants.INITIAL_W_YTD
         w_address = self.generateAddress()
         return [w_id] + w_address + [w_tax, w_ytd]
+
     ## DEF
 
     ## ==============================================
@@ -209,6 +220,7 @@ class Loader:
         d_ytd = constants.INITIAL_D_YTD
         d_address = self.generateAddress()
         return [d_id, d_w_id] + d_address + [d_tax, d_ytd, d_next_o_id]
+
     ## DEF
 
     ## ==============================================
@@ -241,10 +253,11 @@ class Loader:
         c_state = rand.astring(constants.STATE, constants.STATE)
         c_zip = self.generateZip()
 
-        return [ c_id, c_d_id, c_w_id, c_first, c_middle, c_last, \
+        return [c_id, c_d_id, c_w_id, c_first, c_middle, c_last, \
                 c_street1, c_street2, c_city, c_state, c_zip, \
                 c_phone, c_since, c_credit, c_credit_lim, c_discount, c_balance, \
-                c_ytd_payment, c_payment_cnt, c_delivery_cnt, c_data ]
+                c_ytd_payment, c_payment_cnt, c_delivery_cnt, c_data]
+
     ## DEF
 
     ## ==============================================
@@ -253,9 +266,11 @@ class Loader:
     def generateOrder(self, o_w_id, o_d_id, o_id, o_c_id, o_ol_cnt, newOrder):
         """Returns the generated o_ol_cnt value."""
         o_entry_d = datetime.now()
-        o_carrier_id = constants.NULL_CARRIER_ID if newOrder else rand.number(constants.MIN_CARRIER_ID, constants.MAX_CARRIER_ID)
+        o_carrier_id = constants.NULL_CARRIER_ID if newOrder else rand.number(constants.MIN_CARRIER_ID,
+                                                                              constants.MAX_CARRIER_ID)
         o_all_local = constants.INITIAL_ALL_LOCAL
-        return [ o_id, o_c_id, o_d_id, o_w_id, o_entry_d, o_carrier_id, o_ol_cnt, o_all_local ]
+        return [o_id, o_c_id, o_d_id, o_w_id, o_entry_d, o_carrier_id, o_ol_cnt, o_all_local]
+
     ## DEF
 
     ## ==============================================
@@ -277,11 +292,14 @@ class Loader:
         if newOrder == False:
             ol_amount = 0.00
         else:
-            ol_amount = rand.fixedPoint(constants.MONEY_DECIMALS, constants.MIN_AMOUNT, constants.MAX_PRICE * constants.MAX_OL_QUANTITY)
+            ol_amount = rand.fixedPoint(constants.MONEY_DECIMALS, constants.MIN_AMOUNT,
+                                        constants.MAX_PRICE * constants.MAX_OL_QUANTITY)
             ol_delivery_d = None
         ol_dist_info = rand.astring(constants.DIST, constants.DIST)
 
-        return [ ol_o_id, ol_d_id, ol_w_id, ol_number, ol_i_id, ol_supply_w_id, ol_delivery_d, ol_quantity, ol_amount, ol_dist_info ]
+        return [ol_o_id, ol_d_id, ol_w_id, ol_number, ol_i_id, ol_supply_w_id, ol_delivery_d, ol_quantity, ol_amount,
+                ol_dist_info]
+
     ## DEF
 
     ## ==============================================
@@ -296,13 +314,14 @@ class Loader:
         s_data = rand.astring(constants.MIN_I_DATA, constants.MAX_I_DATA);
         if original: self.fillOriginal(s_data)
 
-        s_dists = [ ]
+        s_dists = []
         for i in range(0, constants.DISTRICTS_PER_WAREHOUSE):
             s_dists.append(rand.astring(constants.DIST, constants.DIST))
-        
-        return [ s_i_id, s_w_id, s_quantity ] + \
+
+        return [s_i_id, s_w_id, s_quantity] + \
                s_dists + \
-               [ s_ytd, s_order_cnt, s_remote_cnt, s_data ]
+               [s_ytd, s_order_cnt, s_remote_cnt, s_data]
+
     ## DEF
 
     ## ==============================================
@@ -314,7 +333,8 @@ class Loader:
         h_date = datetime.now()
         h_amount = constants.INITIAL_AMOUNT
         h_data = rand.astring(constants.MIN_DATA, constants.MAX_DATA)
-        return [ h_c_id, h_c_d_id, h_c_w_id, h_d_id, h_w_id, h_date, h_amount, h_data ]
+        return [h_c_id, h_c_d_id, h_c_w_id, h_d_id, h_w_id, h_date, h_amount, h_data]
+
     ## DEF
 
     ## ==============================================
@@ -326,7 +346,8 @@ class Loader:
             Used by both generateWarehouse and generateDistrict.
         """
         name = rand.astring(constants.MIN_NAME, constants.MAX_NAME)
-        return [ name ] + self.generateStreetAddress()
+        return [name] + self.generateStreetAddress()
+
     ## DEF
 
     ## ==============================================
@@ -343,7 +364,8 @@ class Loader:
         state = rand.astring(constants.STATE, constants.STATE)
         zip = self.generateZip()
 
-        return [ street1, street2, city, state, zip ]
+        return [street1, street2, city, state, zip]
+
     ## DEF
 
     ## ==============================================
@@ -351,6 +373,7 @@ class Loader:
     ## ==============================================
     def generateTax(self):
         return rand.fixedPoint(constants.TAX_DECIMALS, constants.MIN_TAX, constants.MAX_TAX)
+
     ## DEF
 
     ## ==============================================
@@ -359,6 +382,7 @@ class Loader:
     def generateZip(self):
         length = constants.ZIP_LENGTH - len(constants.ZIP_SUFFIX)
         return rand.nstring(length, length) + constants.ZIP_SUFFIX
+
     ## DEF
 
     ## ==============================================
