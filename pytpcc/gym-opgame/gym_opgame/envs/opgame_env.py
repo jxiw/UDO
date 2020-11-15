@@ -14,7 +14,6 @@ from . import parameter
 from . import index
 from tpcc import loader
 
-
 class OptimizationGameEnv(gym.Env):
 
     def filterPermutationWithConstraint(self, all_permutation, constraints):
@@ -144,7 +143,7 @@ class OptimizationGameEnv(gym.Env):
             'warehouses': 10,
             'scalefactor': 10,
             'stop_on_error': True,
-            'duration': 20
+            'duration': 1
         }
 
         if self.args['debug']: logging.getLogger().setLevel(logging.DEBUG)
@@ -242,6 +241,12 @@ class OptimizationGameEnv(gym.Env):
         pos = reorder_pos + index_pos * self.nS_reorder + parameter_pos * self.nS_index * self.nS_reorder
         return int(pos)
 
+    def choose_all_heavy_actions(self, state):
+        index_state = state[self.reorder_unit: self.reorder_unit + self.index_candidate]
+        # check which indices are available or not
+        candidate_index_action = [self.nA_reorder + i for i in range(len(index_state)) if index_state[i] == 0]
+        return candidate_index_action
+
     def choose_all_actions(self, state):
         # get all available actions at the current state
         payment_order_state = state[: self.payment_unit]
@@ -258,19 +263,19 @@ class OptimizationGameEnv(gym.Env):
                                                                                             payment_order_state[i],
                                                                                             payment_order_state[
                                                                                                 i + 1]) not in self.payment_unit_constraint) and (
-                                                        payment_order_state[i] < payment_order_state[i + 1])]
+                                                    payment_order_state[i] < payment_order_state[i + 1])]
         candidate_delivery_reorder_action = [self.nA_reorder_payment + i for i in range(self.delivery_unit - 1) if ((
                                                                                                                         delivery_order_state[
                                                                                                                             i],
                                                                                                                         delivery_order_state[
                                                                                                                             i + 1]) not in self.delivery_unit_constraint) and (
-                                                         delivery_order_state[i] < delivery_order_state[i + 1])]
+                                                     delivery_order_state[i] < delivery_order_state[i + 1])]
         candidate_new_order_reorder_action = [self.nA_reorder_payment + self.nA_reorder_delivery + i for i in
                                               range(self.new_order_unit - 1) if ((
                                                                                      new_order_state[i],
                                                                                      new_order_state[
                                                                                          i + 1]) not in self.new_order_unit_constraint) and (
-                                                          new_order_state[i] < new_order_state[i + 1])]
+                                                      new_order_state[i] < new_order_state[i + 1])]
 
         # only allow to change the non-changed parameter
         candidate_parameter_action = []
@@ -293,6 +298,44 @@ class OptimizationGameEnv(gym.Env):
         #                candidate_index_action
         #                for parameter_action in candidate_parameter_action]
         return all_actions
+
+    def choose_all_light_actions(self, state):
+        # get all available actions at the current state
+        payment_order_state = state[: self.payment_unit]
+        delivery_order_state = state[self.payment_unit: self.payment_unit + self.delivery_unit]
+        new_order_state = state[self.payment_unit + self.delivery_unit: self.reorder_unit]
+        parameter_state = state[self.reorder_unit + self.index_candidate:]
+
+        # get the validate actions of each reorder state
+        candidate_payment_reorder_action = [i for i in range(self.payment_unit - 1) if ((
+                                                                                            payment_order_state[i],
+                                                                                            payment_order_state[
+                                                                                                i + 1]) not in self.payment_unit_constraint) and (
+                                                    payment_order_state[i] < payment_order_state[i + 1])]
+        candidate_delivery_reorder_action = [self.nA_reorder_payment + i for i in range(self.delivery_unit - 1) if ((
+                                                                                                                        delivery_order_state[
+                                                                                                                            i],
+                                                                                                                        delivery_order_state[
+                                                                                                                            i + 1]) not in self.delivery_unit_constraint) and (
+                                                     delivery_order_state[i] < delivery_order_state[i + 1])]
+        candidate_new_order_reorder_action = [self.nA_reorder_payment + self.nA_reorder_delivery + i for i in
+                                              range(self.new_order_unit - 1) if ((
+                                                                                     new_order_state[i],
+                                                                                     new_order_state[
+                                                                                         i + 1]) not in self.new_order_unit_constraint) and (
+                                                      new_order_state[i] < new_order_state[i + 1])]
+
+        # only allow to change the non-changed parameter
+        candidate_parameter_action = []
+        parameter_sum = 0
+        for i in range(len(parameter_state)):
+            if parameter_state[i] == 0:
+                for j in range(1, self.parameter_candidate[i]):
+                    candidate_parameter_action.append(self.nA_reorder + self.nA_index + parameter_sum + j)
+            parameter_sum += self.parameter_candidate[i]
+
+        all_light_actions = candidate_payment_reorder_action + candidate_delivery_reorder_action + candidate_new_order_reorder_action + candidate_parameter_action
+        return all_light_actions
 
     def obtain_next_state(self, state, action):
         assert action < self.nA
@@ -423,7 +466,7 @@ class OptimizationGameEnv(gym.Env):
         self.current_state = next_state
         return next_state
 
-    def evalute(self):
+    def evaluate(self):
         state = self.current_state
         print ("current state:")
         print (state)
@@ -469,7 +512,47 @@ class OptimizationGameEnv(gym.Env):
 
         # obtain results
         print(tx_results.show())
-        reward = tx_results.total_commit
+        reward = tx_results.total_rate
+        return reward
+
+    def evaluate_without_indices(self):
+        state = self.current_state
+        print ("current state:")
+        print (state)
+        payment_order = state[: self.payment_unit]
+        delivery_order = state[self.payment_unit: self.payment_unit + self.delivery_unit]
+        new_order_order = state[self.payment_unit + self.delivery_unit: self.reorder_unit]
+        parameter_current_state = state[self.reorder_unit + self.index_candidate:]
+
+        invoke_payment_order = list(payment_order)
+        invoke_delivery_order = list(delivery_order)
+        invoke_new_order_order = list(new_order_order)
+
+        # map invoke transaction order to procedure indentifier
+        invoke_payment_proc = self.payment_permutation_to_position[''.join([str(int(x)) for x in invoke_payment_order])]
+        invoke_delivery_proc = self.delivery_permutation_to_position[
+            ''.join([str(int(x)) for x in invoke_delivery_order])]
+        invoke_new_order_proc = self.new_order_permutation_to_position[
+            ''.join([str(int(x)) for x in invoke_new_order_order])]
+
+        # change system parameter
+        for i in range(self.parameter_candidate_num):
+            parameter_choice = int(parameter_current_state[i])
+            parameter_change_sql = parameter.candidate_dbms_parameter[i][parameter_choice]
+            print(parameter_change_sql)
+            self.driver.setSystemParameter(parameter_change_sql)
+
+        # invoke transaction reorder
+        proc_info = {"payment": invoke_payment_proc, "delivery": invoke_delivery_proc,
+                     "new_order": invoke_new_order_proc}
+        print(proc_info)
+        self.scaleParameters.changeInvokeProcedure(proc_info)
+
+        # invoke transaction reorder
+        tx_results = tpcc.startExecution(self.driverClass, self.scaleParameters, self.args, self.config)
+        # obtain results
+        print(tx_results.show())
+        reward = tx_results.total_rate
         return reward
 
     def step(self, action):
@@ -594,6 +677,20 @@ class OptimizationGameEnv(gym.Env):
         # info = {"reward": reward, "state": state}
         info = {}
         return next_state, reward, None, info
+
+    def index_step(self, add_actions, remove_actions):
+        for action in add_actions:
+            index_action = action - self.nA_reorder
+            index_creation_sql = index.candidate_indices_creation[index_action]
+            # build index action
+            print(index_creation_sql)
+            self.driver.buildIndex(index_creation_sql)
+        for action in remove_actions:
+            index_action = action - self.nA_reorder
+            index_drop_sql = index.candidate_indices_drop[index_action]
+            # drop index action
+            print(index_drop_sql)
+            self.driver.buildIndex(index_drop_sql)
 
     def remove(self, s):
         print("remove")

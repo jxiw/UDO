@@ -48,7 +48,7 @@ for round in range(1, total_round, 1):
                 # observation, reward, done, info = env.step(selected_action)
                 state = env.step_without_evaluation(selected_action)
             # after obtain the total reward
-            reward = env.evalute()
+            reward = env.evaluate()
             # total_reward = total_reward + reward
             if best_performance < reward:
                 best_action = selected_actions[:selected_action + 1]
