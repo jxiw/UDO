@@ -1,6 +1,0 @@
-setup.py
-gym_opgame.egg-info/PKG-INFO
-gym_opgame.egg-info/SOURCES.txt
-gym_opgame.egg-info/dependency_links.txt
-gym_opgame.egg-info/requires.txt
-gym_opgame.egg-info/top_level.txt

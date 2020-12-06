@@ -1,5 +1,5 @@
 import gym
-import gym_opgame
+import gym_olapgame
 import random
 import math
 
@@ -9,7 +9,6 @@ class Uct_Node:
         # construct the transaction space, index space and parameter space
         self.env = env
         self.state = state
-        # self.actions = env.choose_all_actions(state)
         self.actions = env.choose_all_light_actions(state)
         self.nr_action = len(self.actions)
         self.tree_level = tree_level
@@ -17,12 +16,14 @@ class Uct_Node:
         self.children = [None] * self.nr_action
         # for the number of tries of children node
         self.nr_tries = [0] * self.nr_action
-        self.accumulated_reward = [0] * self.nr_action
-        self.mean_reward = [0] * self.nr_action
+        self.first_moment = [0] * self.nr_action
+        self.second_moment = [0] * self.nr_action
+        # self.mean_reward = [0] * self.nr_action
         self.total_visit = 0
         self.priority_actions = self.actions.copy()
         self.tree_height = tree_height
-        self.exploration_rate = 0.1
+        self.bound = 7000
+        self.const = 2.4
 
     def select_action(self):
         if len(self.priority_actions) > 0:
@@ -37,7 +38,11 @@ class Uct_Node:
             for action_idx in range(self.nr_action):
                 # print("total visit:%d"%self.total_visit)
                 # print("nr visit:%d"%self.nr_tries[action_idx])
-                ucb_score = self.mean_reward[action_idx] + self.exploration_rate * math.sqrt(math.log(self.total_visit) / self.nr_tries[action_idx])
+                mean = self.first_moment[action_idx] / self.nr_tries[action_idx]
+                variance = max((self.second_moment[action_idx] / self.nr_tries[action_idx] - (mean * mean)), 0)
+                ucb_score = mean + math.sqrt(
+                    self.const * variance * math.log(self.total_visit) / self.nr_tries[action_idx]) + (
+                                        3 * self.bound * math.log(self.total_visit) / self.nr_tries[action_idx])
                 if ucb_score > best_quality:
                     best_quality = ucb_score
                     best_action_idx = action_idx
@@ -48,7 +53,8 @@ class Uct_Node:
         current_level_state = self.state
         selected_action_path = []
         for current_level in range(self.tree_level + 1, self.tree_height):
-            current_level_state, current_state_id = self.env.obtain_next_state(current_level_state, current_level_action)
+            current_level_state, current_state_id = self.env.obtain_next_state(current_level_state,
+                                                                               current_level_action)
             # current_candidate_actions = self.env.choose_all_actions(current_level_state)
             current_candidate_actions = self.env.choose_all_light_actions(current_level_state)
             current_level_action = random.choice(current_candidate_actions)
@@ -67,7 +73,8 @@ class Uct_Node:
             if can_expand and not self.children[selected_action_idx]:
                 # expend
                 state, state_idx = self.env.obtain_next_state(self.state, selected_action)
-                self.children[selected_action_idx] = Uct_Node(round, self.tree_level + 1, self.tree_height, state, self.env)
+                self.children[selected_action_idx] = Uct_Node(round, self.tree_level + 1, self.tree_height, state,
+                                                              self.env)
             child = self.children[selected_action_idx]
             # recursively sample the tree
             if child:
@@ -81,9 +88,8 @@ class Uct_Node:
             if self.actions[action_idx] == selected_action_current_node:
                 self.total_visit += 1
                 self.nr_tries[action_idx] += 1
-                self.accumulated_reward[action_idx] += reward
-                self.mean_reward[action_idx] = reward / self.nr_tries[action_idx]
+                self.first_moment[action_idx] += reward
+                self.second_moment[action_idx] += reward * reward
+                # self.mean_reward[action_idx] = self.first_moment[action_idx] / self.nr_tries[action_idx]
                 if self.children[action_idx] is not None:
                     self.children[action_idx].update_statistics(reward, selected_actions)
-
-

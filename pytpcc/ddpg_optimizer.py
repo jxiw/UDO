@@ -1,5 +1,5 @@
 import gym
-import gym_opgame
+import gym_olapgame
 import tensorflow as tf
 from tensorflow.keras import layers
 import numpy as np
