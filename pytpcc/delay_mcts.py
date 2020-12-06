@@ -1,3 +1,5 @@
+from typing import Dict, List, Any
+
 import gym
 import gym_olapgame
 from gym_olapgame.envs import index
@@ -145,7 +147,7 @@ while t1 < macro_episode:
         query_to_consider_list = list(map(lambda x: index_query_info[x], remove_terminate_heavy_actions)) #index_query_info
         query_to_consider = set([item for sublist in query_to_consider_list for item in sublist])
         print("query to consider:", query_to_consider)
-        best_performance = dict()
+        best_performance: Dict[List[Any], int] = dict()
         for t2 in range(1, micro_episode):
             env.reset()
             selected_light_actions = light_root.sample(t2)
@@ -165,6 +167,7 @@ while t1 < macro_episode:
             total_run_time = sum(run_time)
             light_reward = constants.light_reward_scale / total_run_time
             light_root.update_statistics(light_reward, selected_light_actions)
+            # update the best gain for each query
             for query in query_to_consider:
                 if query in best_performance:
                     if run_time[query] < best_performance[query]:
@@ -175,18 +178,22 @@ while t1 < macro_episode:
                 best_reward = sum(run_time)
         print("best micro-episode reward: %d" % best_reward)
         # calculate the improvement of each index
-        improvements = []
-        for action in remove_terminate_heavy_actions:
-            # get related queries
-            queries = index_query_info[action]
-            # index_improvement = sum(baseline_runtime[query] - best_performance[query] for query in queries)
-            index_improvement = sum(constants.timeout - best_performance[query] for query in queries)
-            improvements.append(index_improvement)
-        if selected_heavy_actions[-1] == terminate_action:
-            improvements.append(0)
-        print("improvement:", improvements)
-        update_info.append((improvements, selected_heavy_actions))
-        # loss = best_reward
+
+        # a different approach
+        # improvements = []
+        # for action in remove_terminate_heavy_actions:
+        #     # get related queries
+        #     queries = index_query_info[action]
+        #     # index_improvement = sum(baseline_runtime[query] - best_performance[query] for query in queries)
+        #     index_improvement = sum(constants.timeout - best_performance[query] for query in queries)
+        #     improvements.append(index_improvement)
+        # if selected_heavy_actions[-1] == terminate_action:
+        #     improvements.append(0)
+        # print("improvement:", improvements)
+        # update_info.append((improvements, selected_heavy_actions))
+        improvement = constants.timeout * len(all_queries) - best_reward
+        update_info.append((improvement, selected_heavy_actions))
+        # if we use exp3, we need to minimize the loss
         # update_info.append((loss, selected_heavy_actions))
     previous_set = set(remove_terminate_action_batch[evaluated_order[-1]])
     heavy_root.update_batch(update_info)
@@ -194,6 +201,6 @@ while t1 < macro_episode:
     print("time for indices:", idx_build_time)
     t1 += delay_time
 
-print("")
+print("best heavy action", heavy_root.best_actions())
 
 
