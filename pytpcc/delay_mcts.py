@@ -20,7 +20,6 @@ print("start:", time.time())
 
 # print(index_query_info)
 
-
 # print(index_card_info)
 def index_build_cost(current_index_list):
     return sum(index_card_info[current_index] for current_index in current_index_list)

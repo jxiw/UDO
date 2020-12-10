@@ -226,48 +226,49 @@ class Delay_Node:
             else:
                 return [selected_action] + self.playout(selected_action)
 
-    # a different approach
-    # def update_statistics(self, reward_info, selected_actions):
-    #     # selected_action_current_node = selected_actions[self.tree_level]
-    #     for action_idx in range(self.nr_action):
-    #         current_action = self.actions[action_idx]
-    #         # we use the RAVE
-    #         if current_action in selected_actions:
-    #             reward = reward_info[current_action]
-    #             self.total_visit += 1
-    #             self.nr_tries[action_idx] += 1
-    #             self.first_moment[action_idx] += reward
-    #             self.second_moment[action_idx] += reward * reward
-    #             # update the reward for subtree
-    #             if current_action == selected_actions[0] and self.children[action_idx] is not None:
-    #                 next_selected_actions = list(filter(lambda x: x != current_action, selected_actions))
-    #                 self.children[action_idx].update_statistics(reward_info, next_selected_actions)
-    #
-    # def update_batch(self, update_infos):
-    #     for (rewards, select_action) in update_infos:
-    #         # update the probability of each invoke
-    #         # we use the RAVE update
-    #         reward_info = {select_action[i]: rewards[i] for i in range(len(rewards))}
-    #         self.update_statistics(reward_info, select_action)
-
-    def update_statistics(self, reward, selected_actions):
+    # a different approach, consider the improvement
+    def update_statistics(self, reward_info, selected_actions):
+        # selected_action_current_node = selected_actions[self.tree_level]
         for action_idx in range(self.nr_action):
             current_action = self.actions[action_idx]
             # we use the RAVE
             if current_action in selected_actions:
+                baseline_reward = (self.first_moment[self.terminate_action] / self.nr_tries[self.terminate_action])
+                reward = math.max(reward_info[current_action] - baseline_reward, 0)
                 self.total_visit += 1
                 self.nr_tries[action_idx] += 1
                 self.first_moment[action_idx] += reward
                 self.second_moment[action_idx] += reward * reward
                 # update the reward for subtree
-                if self.children[action_idx] is not None:
+                if current_action == selected_actions[0] and self.children[action_idx] is not None:
                     next_selected_actions = list(filter(lambda x: x != current_action, selected_actions))
-                    self.children[action_idx].update_statistics(reward, next_selected_actions)
+                    self.children[action_idx].update_statistics(reward_info, next_selected_actions)
 
     def update_batch(self, update_infos):
-        for (reward, select_action) in update_infos:
+        for (rewards, select_action) in update_infos:
+            # update the probability of each invoke
             # we use the RAVE update
-            self.update_statistics(reward, select_action)
+            reward_info = {select_action[i]: rewards[i] for i in range(len(rewards))}
+            self.update_statistics(reward_info, select_action)
+
+    # def update_statistics(self, reward, selected_actions):
+    #     for action_idx in range(self.nr_action):
+    #         current_action = self.actions[action_idx]
+    #         # we use the RAVE
+    #         if current_action in selected_actions:
+    #             self.total_visit += 1
+    #             self.nr_tries[action_idx] += 1
+    #             self.first_moment[action_idx] += reward
+    #             self.second_moment[action_idx] += reward * reward
+    #             # update the reward for subtree
+    #             if self.children[action_idx] is not None:
+    #                 next_selected_actions = list(filter(lambda x: x != current_action, selected_actions))
+    #                 self.children[action_idx].update_statistics(reward, next_selected_actions)
+
+    # def update_batch(self, update_infos):
+    #     for (reward, select_action) in update_infos:
+    #         # we use the RAVE update
+    #         self.update_statistics(reward, select_action)
 
     def print(self):
         mean_reward = [0] * self.nr_action
