@@ -4,7 +4,7 @@ import gym
 import numpy as np
 from gym import spaces
 
-from drivers.mysqldriver import MysqlDriver
+# from drivers.mysqldriver import MysqlDriver
 from drivers.postgresdriver import PostgresDriver
 
 from . import index
@@ -144,7 +144,7 @@ class OLAPOptimizationGameEnv(gym.Env):
         self.current_state = next_state
         return next_state
 
-    def evaluate_light_under_heavy(self):
+    def evaluate_light_under_heavy(self, query_list, timeout):
         state = self.current_state
         print ("current state:")
         print (state)
@@ -158,7 +158,7 @@ class OLAPOptimizationGameEnv(gym.Env):
             self.driver.setSystemParameter(parameter_change_sql)
 
         # invoke queries
-        run_time = self.driver.runQueries()
+        run_time = self.driver.runQueries(query_list, timeout)
         print("evaluate time:", sum(run_time))
         return run_time
 
@@ -170,6 +170,23 @@ class OLAPOptimizationGameEnv(gym.Env):
             print("create index")
             print(index_to_create)
             self.driver.buildIndex(index_to_create)
+        for remove_action in remove_actions:
+            index_to_drop = index.candidate_indices[remove_action]
+            # drop index action
+            print("drop index")
+            print(index_to_drop)
+            self.driver.dropIndex(index_to_drop)
+
+    def index_add_step(self, add_action):
+        # add action
+        index_to_create = index.candidate_indices[add_action]
+        #build index action
+        print("create index")
+        print(index_to_create)
+        self.driver.buildIndex(index_to_create)
+
+    def index_drop_step(self, remove_actions):
+        # drop actions
         for remove_action in remove_actions:
             index_to_drop = index.candidate_indices[remove_action]
             # drop index action

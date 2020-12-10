@@ -114,7 +114,6 @@
 
 
 import gym
-import gym_opgame
 import random
 import math
 
@@ -147,10 +146,15 @@ class Delay_Node:
 
     def select_action(self):
         if len(self.priority_actions) > 0:
-            selected_action = random.choice(self.priority_actions)
-            self.priority_actions.remove(selected_action)
-            selected_action_idx = self.actions.index(selected_action)
-            return selected_action, selected_action_idx
+            if self.nr_tries[-1] == 0:
+                # we first select the terminate action, if it has not been selected before
+                return self.terminate_action, self.nr_action - 1
+            else:
+                # otherwise, we randomly pick up a different node
+                selected_action = random.choice(self.priority_actions)
+                self.priority_actions.remove(selected_action)
+                selected_action_idx = self.actions.index(selected_action)
+                return selected_action, selected_action_idx
         else:
             # select actions according to ucb1
             best_action_idx = -1

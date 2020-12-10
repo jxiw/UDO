@@ -83,13 +83,26 @@ class Uct_Node:
                 return [selected_action] + self.playout(selected_action)
 
     def update_statistics(self, reward, selected_actions):
-        selected_action_current_node = selected_actions[self.tree_level]
         for action_idx in range(self.nr_action):
-            if self.actions[action_idx] == selected_action_current_node:
+            current_action = self.actions[action_idx]
+            # we use the RAVE
+            if current_action in selected_actions:
                 self.total_visit += 1
                 self.nr_tries[action_idx] += 1
                 self.first_moment[action_idx] += reward
                 self.second_moment[action_idx] += reward * reward
-                # self.mean_reward[action_idx] = self.first_moment[action_idx] / self.nr_tries[action_idx]
+                # update the reward for subtree
                 if self.children[action_idx] is not None:
-                    self.children[action_idx].update_statistics(reward, selected_actions)
+                    next_selected_actions = list(filter(lambda x: x != current_action, selected_actions))
+                    self.children[action_idx].update_statistics(reward, next_selected_actions)
+
+        # selected_action_current_node = selected_actions[self.tree_level]
+        # for action_idx in range(self.nr_action):
+        #     if self.actions[action_idx] == selected_action_current_node:
+        #         self.total_visit += 1
+        #         self.nr_tries[action_idx] += 1
+        #         self.first_moment[action_idx] += reward
+        #         self.second_moment[action_idx] += reward * reward
+        #         # self.mean_reward[action_idx] = self.first_moment[action_idx] / self.nr_tries[action_idx]
+        #         if self.children[action_idx] is not None:
+        #             self.children[action_idx].update_statistics(reward, selected_actions)

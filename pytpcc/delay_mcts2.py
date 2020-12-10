@@ -1,5 +1,3 @@
-from typing import Dict, List, Any
-
 import gym
 import gym_olapgame
 from gym_olapgame.envs import index
@@ -12,19 +10,16 @@ import random
 
 all_queries = list(constants.QUERIES.keys())
 # print(all_queries)
-query_info = {all_queries[idx]: idx for idx in range(len(all_queries))}
+query_pos_info = {all_queries[idx]: idx for idx in range(len(all_queries))}
 index_card_info = list(map(lambda x: x[4], index.candidate_indices))
-index_query_info = list(map(lambda x: list(map(lambda y: query_info[y], x[3])), index.candidate_indices))
+index_query_info = list(map(lambda x: list(map(lambda y: query_pos_info[y], x[3])), index.candidate_indices))
 
 print("start:", time.time())
-
 # print(index_query_info)
-
 
 # print(index_card_info)
 def index_build_cost(current_index_list):
     return sum(index_card_info[current_index] for current_index in current_index_list)
-
 
 def min_cost_order(selected_action_batch):
     # determine the order to evaluate those actions of the given batch
@@ -85,7 +80,7 @@ env = gym.make('olapgame-v0')
 
 # number of indices equal heavy_tree_height + 1
 heavy_tree_height = 3
-light_tree_height = 5
+light_tree_height = 8
 
 init_state = env.map_number_to_state(0)
 macro_episode = 100000
@@ -127,6 +122,7 @@ baseline_runtime = [0.9940712451934814, 0.6042485237121582, 0.6398360729217529, 
                     23.07475519180298, 21.40514349937439, 23.089293479919434, 1.2680790424346924, 1.3159940242767334,
                     2.810530185699463, 1.3043646812438965, 1.0104424953460693]
 idx_build_time = 0
+idx_drop_time = 0
 
 t1 = 1
 while t1 < macro_episode:
@@ -164,18 +160,30 @@ while t1 < macro_episode:
             print(add_action)
             print("drop action")
             print(drop_action)
-        # build the indices
+
+        # first drop action
         time_start = time.time()
-        env.index_step(add_action, drop_action)
+        env.index_drop_step(drop_action)
         time_end = time.time()
-        idx_build_time += (time_end - time_start)
-        # run the simulation on other parameters
-        selected_heavy_action_frozen = frozenset(remove_terminate_heavy_actions)
-        if selected_heavy_action_frozen in light_tree_cache:
-            light_root = light_tree_cache[selected_heavy_action_frozen]
-        else:
-            light_root = uct_node.Uct_Node(0, 0, light_tree_height, init_state, env)
-            light_tree_cache[selected_heavy_action_frozen] = light_root
+        idx_drop_time += (time_end - time_start)
+        for action in remove_terminate_heavy_actions:
+            if action in add_action:
+                # need to build the indices
+                time_start = time.time()
+                env.index_add_step(action)
+                time_end = time.time()
+                idx_build_time += (time_end - time_start)
+
+            # run the simulation on other parameters
+            current_test_action =
+            selected_heavy_action_frozen = frozenset(remove_terminate_heavy_actions)
+            if selected_heavy_action_frozen in light_tree_cache:
+                light_root = light_tree_cache[selected_heavy_action_frozen]
+            else:
+                light_root = uct_node.Uct_Node(0, 0, light_tree_height, init_state, env)
+                light_tree_cache[selected_heavy_action_frozen] = light_root
+
+
         best_reward = 0
         # best_actions = []
         query_to_consider_list = list(

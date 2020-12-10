@@ -102,5 +102,8 @@ candidate_dbms_parameter = [
     ], [
         "set enable_tidscan = on;",
         "set enable_tidscan = off;",
-    ],
+    ], [
+        "SET enable_nestloop = on;",
+        "SET enable_nestloop = false;",
+    ]
 ]
