@@ -120,7 +120,7 @@ import constants
 
 
 class Delay_Node:
-    def __init__(self, round, tree_level, tree_height, terminate_action, nr_query, state, env):
+    def __init__(self, round, tree_level, tree_height, terminate_action, state, env):
         self.create_in = round
         # construct the transaction space, index space and parameter space
         self.env = env
@@ -143,8 +143,7 @@ class Delay_Node:
         self.terminate_action = terminate_action
         # self.exploration_rate = 1.4
         self.total_visit = 0
-        self.nr_query = nr_query
-        self.bound = 1
+        self.bound = 0.5
         self.const = 2.4
 
     def select_action(self):
@@ -222,7 +221,7 @@ class Delay_Node:
                 # expend
                 state, state_idx = self.env.obtain_next_state(self.state, selected_action)
                 self.children[selected_action_idx] = Delay_Node(round, self.tree_level + 1, self.tree_height,
-                                                                self.terminate_action, self.nr_query, state, self.env)
+                                                                self.terminate_action, state, self.env)
             child = self.children[selected_action_idx]
             # recursively sample the tree
             if child:
@@ -327,6 +326,7 @@ class Delay_Node:
             else:
                 mean_reward[i] = 0
         print("first layer avg reward:", mean_reward)
+        print("nr visit:", self.nr_tries)
 
     def best_actions(self):
         best_mean = 0

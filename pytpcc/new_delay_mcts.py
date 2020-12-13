@@ -88,8 +88,8 @@ heavy_tree_height = 3
 light_tree_height = 5
 
 init_state = env.map_number_to_state(0)
-macro_episode = 100000
-micro_episode = 20
+macro_episode = 10000
+micro_episode = 5
 
 terminate_action = env.index_candidate_num
 light_tree_cache = dict()
@@ -101,8 +101,7 @@ global_max_reward = 0
 global_max_action = []
 
 env.reset()
-# constants.baseline_runtime = env.evaluate_light_under_heavy(all_queries, [0] * len(all_queries))
-constants.default_runtime = [11] * nr_query
+constants.default_runtime = env.evaluate_light_under_heavy(all_queries, [0] * len(all_queries))
     # [0.9940712451934814, 0.6042485237121582, 0.6398360729217529, 0.7888808250427246, 1.339827060699463,
     #                 1.229813575744629, 1.1687071323394775, 4.970311880111694, 9.041927099227905, 4.719568252563477,
     #                 6.273277997970581, 0.8070902824401855, 0.7040481567382812, 0.823775053024292, 0.4171473979949951,
@@ -127,7 +126,7 @@ constants.default_runtime = [11] * nr_query
     #                 23.07475519180298, 21.40514349937439, 23.089293479919434, 1.2680790424346924, 1.3159940242767334,
     #                 2.810530185699463, 1.3043646812438965, 1.0104424953460693]
 
-heavy_root = delay_node.Delay_Node(0, 0, heavy_tree_height, terminate_action, nr_query, init_state, env)
+heavy_root = delay_node.Delay_Node(0, 0, heavy_tree_height, terminate_action, init_state, env)
 idx_build_time = 0
 
 t1 = 1
@@ -180,14 +179,12 @@ while t1 < macro_episode:
             light_tree_cache[selected_heavy_action_frozen] = light_root
         best_reward = 10000000
         # best_actions = []
-        query_to_consider_list = list(
-            map(lambda x: index_query_info[x], remove_terminate_heavy_actions))  # index_query_info
-        query_to_consider = set([item for sublist in query_to_consider_list for item in sublist])
-        # if len(remove_terminate_heavy_actions) == 0:
-        #     query_to_consider = set(range(nr_query))
+        query_to_consider = set([item for sublist in list(map(lambda x: index_query_info[x], remove_terminate_heavy_actions)) for item in sublist])
+        if len(remove_terminate_heavy_actions) == 0:
+            query_to_consider = set(range(nr_query))
         print("query to consider:", query_to_consider)
         # best performance for each query
-        best_performance: Dict[List[Any], int] = dict()
+        best_performance: Dict[int, int] = dict()
         for t2 in range(1, micro_episode):
             env.reset()
             selected_light_actions = light_root.sample(t2)
@@ -196,27 +193,30 @@ while t1 < macro_episode:
                 # move to next state
                 state = env.step_without_evaluation(selected_light_action)
 
-            # run_time = env.evaluate_light_under_heavy()
-            run_time = [11] * nr_query
-            if 10 in selected_heavy_actions:
-                run_time[34] = 10
-            if 8 in selected_heavy_actions:
-                run_time[26] = 10
-            if 6 in selected_heavy_actions:
-                run_time[7] = 3
-            if 4 in selected_heavy_actions and 5 in selected_heavy_actions:
-                run_time[40] = 1
+            query_to_consider_list = list(query_to_consider)
+            run_time = env.evaluate_light_under_heavy([all_queries[select_query] for select_query in query_to_consider_list],
+                                                          [constants.default_runtime[select_query] for select_query in query_to_consider_list])
+            # run_time = [11] * nr_query
+            # if 10 in selected_heavy_actions:
+            #     run_time[34] = 10
+            # if 8 in selected_heavy_actions:
+            #     run_time[26] = 10
+            # if 6 in selected_heavy_actions:
+            #     run_time[7] = 3
+            # if 4 in selected_heavy_actions and 5 in selected_heavy_actions:
+            #     run_time[40] = 1
 
             total_run_time = sum(run_time)
             light_reward = constants.light_reward_scale / total_run_time
             light_root.update_statistics(light_reward, selected_light_actions)
             # update the best gain for each query
-            for query in query_to_consider:
+            for invoke_id in range(len(query_to_consider_list)):
+                query = query_to_consider_list[invoke_id]
                 if query in best_performance:
-                    if run_time[query] < best_performance[query]:
-                        best_performance[query] = run_time[query]
+                    if run_time[invoke_id] < best_performance[query]:
+                        best_performance[query] = run_time[invoke_id]
                 else:
-                    best_performance[query] = run_time[query]
+                    best_performance[query] = run_time[invoke_id]
             if sum(run_time) < best_reward:
                 best_reward = sum(run_time)
 
@@ -243,6 +243,7 @@ while t1 < macro_episode:
     heavy_root.update_batch(update_info)
     heavy_root.print()
     print("time for indices:", idx_build_time)
+    print("best heavy action", heavy_root.best_actions())
     t1 += delay_time
 
 print("best heavy action", heavy_root.best_actions())

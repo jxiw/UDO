@@ -87,7 +87,7 @@ light_tree_height = 5
 
 init_state = env.map_number_to_state(0)
 macro_episode = 100000
-micro_episode = 20
+micro_episode = 10
 
 terminate_action = env.index_candidate_num
 heavy_root = delay_node.Delay_Node(0, 0, heavy_tree_height, terminate_action, init_state, env)
