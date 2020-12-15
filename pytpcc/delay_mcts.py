@@ -4,7 +4,7 @@ import gym
 import gym_olapgame
 from gym_olapgame.envs import index
 
-from mcts import delay_node
+from mcts import delay_uct_node
 from mcts import uct_node
 import time
 import constants
@@ -90,7 +90,7 @@ macro_episode = 100000
 micro_episode = 10
 
 terminate_action = env.index_candidate_num
-heavy_root = delay_node.Delay_Node(0, 0, heavy_tree_height, terminate_action, init_state, env)
+heavy_root = delay_uct_node.Delay_Uct_Node(0, 0, heavy_tree_height, terminate_action, init_state, env)
 light_tree_cache = dict()
 
 # prepare the heavy configurations
