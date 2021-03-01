@@ -204,7 +204,6 @@
 # print_create_info()
 # print_drop_info()
 
-
 candidate_indices = [
     ('IDXa_CUSTOMER', 'CUSTOMER', 'C_W_ID,C_D_ID,C_LAST,C_FIRST'),
     ('IDXb_CUSTOMER', 'CUSTOMER', 'C_W_ID,C_D_ID,C_LAST'),
@@ -280,6 +279,8 @@ candidate_indices = [
 ]
 
 import constants
+import MySQLdb
+
 cardinality = constants.cardinality_info
 for i in range(len(candidate_indices)):
     index_cardinality = cardinality[candidate_indices[i][1]]
@@ -287,3 +288,41 @@ for i in range(len(candidate_indices)):
 
 # print(len(candidate_indices))
 print(candidate_indices)
+
+# # config to connect dbms
+# config = {
+#     "host": "127.0.0.1",
+#     "port": 3306,
+#     "db": "tpch",
+#     "user": "jw2544",
+#     "passwd": "jw2544"
+# }
+#
+# conn = MySQLdb.connect(config['host'], config['user'], config['passwd'], config['db'])
+# cursor = conn.cursor()
+#
+# import time
+#
+# build_time=[]
+# drop_time=[]
+# index_creation_format = "CREATE INDEX %s ON %s (%s) USING BTREE;"
+# for i in range(len(candidate_indices)):
+#     index_to_test = candidate_indices[i]
+#     build_start = time.time()
+#     # logging.debug("create index %s" % index_to_create)
+#     cursor.execute(index_creation_format % (index_to_test[0], index_to_test[1], index_to_test[2]))
+#     conn.commit()
+#     build_end = time.time()
+#     build_duration = build_end - build_start
+#     drop_start = time.time()
+#     index_drop_format = "ALTER TABLE %s drop index %s;"
+#     # logging.debug("drop index %s" % index_to_drop)
+#     cursor.execute(index_drop_format % (index_to_test[1], index_to_test[0]))
+#     conn.commit()
+#     drop_end = time.time()
+#     drop_duration = drop_end - drop_start
+#     build_time.append(build_duration)
+#     drop_time.append(drop_duration)
+#
+# print(build_time)
+# print(drop_time)

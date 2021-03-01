@@ -74,11 +74,14 @@ class Executor:
                     # except deadlock error
                     raise
             except (Exception, AssertionError) as ex:
-                # logging.warn("Failed to execute Transaction '%s': %s" % (txn, ex))
-                if debug: traceback.print_exc(file=sys.stdout)
-                if self.stop_on_error: raise
-                r.abortTransaction(txn_id)
-                continue
+                print(ex)
+                print("error")
+            # except (Exception, AssertionError) as ex:
+            #     # logging.warn("Failed to execute Transaction '%s': %s" % (txn, ex))
+            #     if debug: traceback.print_exc(file=sys.stdout)
+            #     if self.stop_on_error: raise
+            #     r.abortTransaction(txn_id)
+            #     continue
 
             #if debug: logging.debug("%s\nParameters:\n%s\nResult:\n%s" % (txn, pformat(params), pformat(val)))
             

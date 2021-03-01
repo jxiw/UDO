@@ -62,7 +62,7 @@ candidate_indices = [
     ("IDX_LINEITEM_d", "LINEITEM", "L_SHIPDATE"),
     ("IDX_LINEITEM_e", "LINEITEM", "L_DISCOUNT"),
     ("IDX_LINEITEM_f", "LINEITEM", "L_ORDERKEY"), # rank 1 ###
-    ("IDX_LINEITEM_g", "LINEITEM", "L_PARTKEY, L_SUPPKEY"),
+    # ("IDX_LINEITEM_g", "LINEITEM", "L_PARTKEY, L_SUPPKEY"),
     ("IDX_LINEITEM_h", "LINEITEM", "L_QUANTITY"),
     ("IDX_LINEITEM_i", "LINEITEM", "L_ORDERKEY, L_SUPPKEY"),
     ("IDX_LINEITEM_j", "LINEITEM", "L_RECEIPTDATE"),
@@ -79,12 +79,12 @@ candidate_indices = [
     # partsupp
     ("IDX_PARTSUPP_a", "PARTSUPP", "PS_PARTKEY, PS_SUPPKEY, PS_SUPPLYCOST"), ###
     ("IDX_PARTSUPP_b", "PARTSUPP", "PS_SUPPLYCOST"),
-    ("IDX_PARTSUPP_c", "PARTSUPP", "PS_SUPPKEY"),
+    # ("IDX_PARTSUPP_c", "PARTSUPP", "PS_SUPPKEY"),
     ("IDX_PARTSUPP_d", "PARTSUPP", "PS_PARTKEY"),
     ("IDX_PARTSUPP_e", "PARTSUPP", "PS_PARTKEY, PS_SUPPKEY"),
     ("IDX_PARTSUPP_f", "PARTSUPP", "PS_AVAILQTY"),
     # supplier
-    ("IDX_SUPPLIER_a", "SUPPLIER", "S_NATIONKEY"),
+    # ("IDX_SUPPLIER_a", "SUPPLIER", "S_NATIONKEY"),
     # part
     ("IDX_PART_a", "PART", "P_SIZE"),
     ("IDX_PART_b", "PART", "P_TYPE"),
@@ -106,21 +106,21 @@ candidate_indices = [
     ("IDX_ORDERS_g", "ORDERS", "O_CLERK"),
     ("IDX_ORDERS_h", "ORDERS", "O_CUSTKEY, O_ORDERKEY"),
     ("IDX_ORDERS_i", "ORDERS", "O_CUSTKEY, O_ORDERKEY, O_SHIPPRIORITY"),
-    ("IDX_ORDERS_j", "ORDERS", "O_CUSTKEY, O_ORDERKEY, O_ORDERDATE"),
+    # ("IDX_ORDERS_j", "ORDERS", "O_CUSTKEY, O_ORDERKEY, O_ORDERDATE"),
     ("IDX_ORDERS_k", "ORDERS", "O_CUSTKEY, O_ORDERKEY, O_ORDERSTATUS"),
     # region
     # ("IDX_REGION_a", "REGION", "R_REGIONKEY"),
     ("IDX_REGION_b", "REGION", "R_NAME"),
     # nation
     # ("IDX_NATION_a", "NATION", "N_NATIONKEY"),
-    ("IDX_NATION_b", "NATION", "N_REGIONKEY"),
+    # ("IDX_NATION_b", "NATION", "N_REGIONKEY"),
     ("IDX_NATION_c", "NATION", "N_NAME"),
     ("IDX_NATION_d", "NATION", "N_NATIONKEY, N_REGIONKEY"),
     # customer
     ("IDX_CUSTOMER_a", "CUSTOMER", "C_NATIONKEY"),  ###
     ("IDX_CUSTOMER_b", "CUSTOMER", "C_CUSTKEY"),
     ("IDX_CUSTOMER_c", "CUSTOMER", "C_MKTSEGMENT"),
-    ("IDX_CUSTOMER_d", "CUSTOMER", "C_NATIONKEY, C_CUSTKEY"),
+    # ("IDX_CUSTOMER_d", "CUSTOMER", "C_NATIONKEY, C_CUSTKEY"),
     ("IDX_CUSTOMER_e", "CUSTOMER", "C_ACCTBAL"),
     ("IDX_CUSTOMER_f", "CUSTOMER", "C_PHONE"),
     ("IDX_CUSTOMER_g", "CUSTOMER", "C_CUSTKEY, C_ACCTBAL, C_PHONE"),
@@ -283,6 +283,12 @@ for i in range(len(candidate_indices)):
 candidate_indices = [candidate_indice for candidate_indice in candidate_indices if len(candidate_indice[3]) > 0]
 print(len(candidate_indices))
 
+# index_drop_format = "CREATE INDEX %s ON %s (%s) USING BTREE;"
+#     # "ALTER TABLE %s drop index %s;"
+# for index_to_drop in candidate_indices:
+#     # str = index_drop_format % (index_to_drop[1], index_to_drop[0])
+#     str = index_drop_format%(index_to_drop[0], index_to_drop[1], index_to_drop[2])
+#     print(str)
 
 # from drivers.postgresdriver import PostgresDriver
 # import time

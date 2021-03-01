@@ -11,7 +11,7 @@ class MysqlDriver(AbstractDriver):
     DEFAULT_CONFIG = {
         "host": ("The hostname to mysql", "127.0.0.1"),
         "port": ("The port number to mysql", 3306),
-        "db": ("datbase name", "tpcc_py"),
+        "db": ("database name", "tpcc_py"),
         "user": ("user name", "jw2544"),
         "passwd": ("password", "jw2544")
     }
@@ -122,6 +122,7 @@ class MysqlDriver(AbstractDriver):
     ## doPayment
     ## ----------------------------------------------
     def doPayment(self, params):
+        # print("payment:", params)
         w_id = params["w_id"]
         d_id = params["d_id"]
         h_amount = params["h_amount"]
@@ -143,7 +144,7 @@ class MysqlDriver(AbstractDriver):
         threshold = params["threshold"]
         low_stock = 0
         proc_args = [w_id, d_id, threshold, low_stock]
-        self.cursor.callproc('order_status', proc_args)
+        self.cursor.callproc('stock_level', proc_args)
         self.conn.commit()
 
     # def buildIndex(self, index_creation_sql):

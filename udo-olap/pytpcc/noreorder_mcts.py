@@ -35,7 +35,7 @@ root = global_node.Global_Node(0, 0, tree_height, init_state, env)
 #     round = round + 1
 
 best_performance = 0
-best_action = []
+# best_action = []
 prev_index_action = []
 idx_build_time = 0
 
@@ -79,25 +79,31 @@ for round in range(1, total_round, 1):
     if len(query_to_consider) == 0:
         query_to_consider = set(range(nr_query))
     sample_num = math.ceil(constants.sample_rate * len(query_to_consider))
-    sampled_query_list = random.choices(list(query_to_consider), k=sample_num)
+    sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
     run_time = env.evaluate_light_under_heavy([all_queries[select_query] for select_query in sampled_query_list],
                                               [constants.default_runtime[select_query] for select_query in
                                                sampled_query_list])
     total_run_time = sum(run_time)
     default_time = sum(constants.default_runtime[select_query] for select_query in sampled_query_list)
     reward = default_time / total_run_time
+
     root.update_statistics(reward, selected_actions)
     current_time = time.time()
     print("duration:", current_time - start_time)
     print("index time:", idx_build_time)
 
+    other_default_time = sum(constants.default_runtime[select_query] for select_query in range(nr_query) if
+                             select_query not in sampled_query_list)
+    print("estimate whole workload time:", (other_default_time + total_run_time))
+
     print("current best action:")
-    print(best_action)
+    # print(best_action)
+    root.print()
     print("best performance:%d"%best_performance)
     prev_index_action = current_index_action
 
 # return the best performance action
 print("best action:")
-print(best_action)
+# print(best_action)
 print("best performance:%d"%best_performance)
 

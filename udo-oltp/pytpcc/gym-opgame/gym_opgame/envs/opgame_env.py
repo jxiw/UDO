@@ -84,7 +84,10 @@ class OptimizationGameEnv(gym.Env):
         # parameter action space
         # e.g., the first parameter has 4 choices, the second parameter has 4 choices, and the third and fourth parameter has 4 choices
         # self.parameter_candidate = np.array([5, 4, 4, 4, 4, 4])
-        self.parameter_candidate = np.array([4, 4, 4, 4, 4])
+        # self.parameter_candidate = np.array([4, 4, 4, 4, 4])
+
+        self.parameter_candidate = [len(specific_parameter) for specific_parameter in
+                                   parameter.candidate_dbms_parameter]
         self.parameter_candidate_num = len(self.parameter_candidate)
 
         # combine the actions from 3 sub actions
@@ -135,14 +138,25 @@ class OptimizationGameEnv(gym.Env):
         self.observation_space = spaces.MultiDiscrete(observation_space_array)
 
         # our transition matrix is a deterministic matrix
+        # self.args = {
+        #     'debug': False,
+        #     'system': 'mysql',
+        #     'ddl': '',
+        #     'clients': 32,
+        #     'warehouses': 10,
+        #     'scalefactor': 10,
+        #     'stop_on_error': False,
+        #     'duration': 1
+        # }
+
         self.args = {
             'debug': False,
-            'system': 'mysql',
+            'system': 'postgres',
             'ddl': '',
             'clients': 32,
             'warehouses': 10,
             'scalefactor': 10,
-            'stop_on_error': True,
+            'stop_on_error': False,
             'duration': 1
         }
 
@@ -166,6 +180,10 @@ class OptimizationGameEnv(gym.Env):
             tpcc.startLoading(self.driverClass, self.scaleParameters, self.args, self.config)
 
         self.current_state = None
+        self.start_time = time.time()
+        self.accumulated_index_time = 0
+        self.horizon = 12
+        self.cr_step = 0
 
     def map_number_to_state(self, num):
         reorder_pos = int(num % (self.nS_reorder))
@@ -617,7 +635,11 @@ class OptimizationGameEnv(gym.Env):
                 index_creation_sql = index.candidate_indices[index_action]
                 # index_drop_sql = index.candidate_indices_drop[index_action]
                 print(index_creation_sql)
+                start_time = time.time()
                 self.driver.buildIndex(index_creation_sql)
+                end_time = time.time()
+                index_time = (end_time - start_time)
+                self.accumulated_index_time = self.accumulated_index_time + index_time
         else:
             print("try parameter")
             assert (action < self.nA_reorder + self.nA_index + self.nA_parameter)
@@ -674,9 +696,19 @@ class OptimizationGameEnv(gym.Env):
             [invoke_payment_order, invoke_delivery_order, invoke_new_order_order, index_current_state,
              parameter_current_state])
         self.current_state = next_state
+
+        print("index time:", self.accumulated_index_time)
         # info = {"reward": reward, "state": state}
         info = {}
-        return next_state, reward, None, info
+
+        current_time = time.time()
+        print("current time:", (current_time - self.start_time))
+        self.cr_step += 1
+        if self.cr_step == self.horizon:
+            self.cr_step = 0
+            return next_state, reward, True, {}
+        else:
+            return next_state, reward, False, {}
 
     def index_step(self, add_actions, remove_actions):
         # one index build or drop action
@@ -744,5 +776,16 @@ class OptimizationGameEnv(gym.Env):
 
     def reset_database(self):
         self.driver.resetDatabase()
+        # reset the system parameter
+        if self.current_state is not None:
+            # set the parameter to default value
+            for i in range(self.parameter_candidate_num):
+                parameter_change_sql = parameter.candidate_dbms_parameter[i][0]
+                self.driver.setSystemParameter(parameter_change_sql)
+        self.current_state = np.concatenate([np.arange(self.payment_unit),
+                                             np.arange(self.delivery_unit),
+                                             np.arange(self.new_order_unit),
+                                             np.zeros(self.index_candidate_num),
+                                             np.zeros(self.parameter_candidate_num)])
 
 

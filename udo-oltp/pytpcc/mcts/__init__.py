@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ["delay_node", "uct_node", "delay_uct_node"]
+__all__ = ["delay_node", "uct_node", "delay_uct_node", "global_inter"]

@@ -11,6 +11,7 @@ import time
 import constants
 import random
 import order_optimizer
+import sys
 
 all_queries = list(constants.QUERIES.keys())
 nr_query = len(all_queries)
@@ -26,8 +27,8 @@ optimizer = order_optimizer.OrderOptimizer(index_card_info)
 env = gym.make('olapgame-v0')
 
 # number of indices equal heavy_tree_height + 1
-heavy_tree_height = 4
-light_tree_height = 8
+heavy_tree_height = 3
+light_tree_height = 5
 
 init_state = env.map_number_to_state(0)
 macro_episode = 10000
@@ -37,7 +38,7 @@ terminate_action = env.index_candidate_num
 light_tree_cache = dict()
 
 # prepare the heavy configurations
-delay_time = 20
+delay_time = 5
 
 global_max_reward = 0
 global_max_action = []
@@ -49,6 +50,7 @@ heavy_root = delay_uct_node.Delay_Uct_Node(0, 0, heavy_tree_height, terminate_ac
 idx_build_time = 0
 
 t1 = 1
+start_time = time.time()
 while t1 < macro_episode:
     selected_heavy_action_batch = []
     configuration_to_evaluate = []
@@ -119,7 +121,8 @@ while t1 < macro_episode:
             # obtain sample number
             sample_num = math.ceil(constants.sample_rate * len(query_to_consider))
             # generate sample queries
-            sampled_query_list = random.choices(list(query_to_consider), k=sample_num)
+            sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
+            print("sampled_query_list:", sampled_query_list)
             # obtain run time info by running queries within timeout
             run_time = env.evaluate_light_under_heavy(
                 [all_queries[select_query] for select_query in sampled_query_list],
@@ -132,6 +135,14 @@ while t1 < macro_episode:
             light_reward = default_time / total_run_time
             print("light_action:", selected_light_actions)
             print("light_reward:", light_reward)
+
+            other_default_time = sum(constants.default_runtime[select_query] for select_query in range(nr_query) if select_query not in sampled_query_list)
+            print("estimate whole workload time:", (other_default_time + total_run_time))
+
+            current_time = time.time()
+            print("current global time:", (current_time - start_time))
+            print("global time for indices:", idx_build_time)
+
             light_root.update_statistics(light_reward, selected_light_actions)
             # update the best gain for each query
             for sample_query_id in range(len(sampled_query_list)):
@@ -148,6 +159,7 @@ while t1 < macro_episode:
         macro_performance_info[selected_heavy_action_frozen] = best_micro_performance
 
     print("macro_performance_info:", macro_performance_info)
+    sys.stdout.flush()
     # ### obtain the best macro performances info
     best_slot_performance = dict()
     for selected_heavy_action_frozen, performance in macro_performance_info.items():
@@ -172,10 +184,10 @@ while t1 < macro_episode:
                 current_performance = macro_performance_info[selected_heavy_action_frozen]
                 # generate reward based on the difference between previous performance and current performance
                 # the query for current indices
-                query_to_consider = index_query_info[selected_heavy_actions[i]]
+                query_to_consider_new = index_query_info[selected_heavy_actions[i]]
                 # get the query to consider
                 delta_improvement = 0
-                for query in query_to_consider:
+                for query in query_to_consider_new:
                     previous_runtime = constants.default_runtime[query]
                     current_runtime = constants.default_runtime[query]
                     if query in current_performance:
@@ -190,9 +202,12 @@ while t1 < macro_episode:
     heavy_root.update_batch(update_info_slot)
     previous_set = set(configuration_to_evaluate[evaluated_order[-1]])
     heavy_root.print()
+    current_time = time.time()
+    print("current time:", (current_time - start_time))
     print("time for indices:", idx_build_time)
     print("best heavy action", heavy_root.best_actions())
     t1 += delay_time
+    sys.stdout.flush()
 
 print("best heavy action", heavy_root.best_actions())
 

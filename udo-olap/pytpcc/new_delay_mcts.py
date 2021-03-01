@@ -25,7 +25,7 @@ print("start:", time.time())
 env = gym.make('olapgame-v0')
 
 # number of indices equal heavy_tree_height + 1
-heavy_tree_height = 3
+heavy_tree_height = 4
 light_tree_height = 5
 
 init_state = env.map_number_to_state(0)
@@ -72,6 +72,7 @@ heavy_root = delay_uct_node.Delay_Uct_Node(0, 0, heavy_tree_height, terminate_ac
 idx_build_time = 0
 
 t1 = 1
+start_time = time.time()
 while t1 < macro_episode:
     selected_heavy_action_batch = []
     remove_terminate_action_batch = []
@@ -122,11 +123,9 @@ while t1 < macro_episode:
         best_reward = 10000000
         # best_actions = []
         query_to_consider = set([item for sublist in list(map(lambda x: index_query_info[x], remove_terminate_heavy_actions)) for item in sublist])
-        if len(remove_terminate_heavy_actions) == 0:
-            query_to_consider = set(range(nr_query))
         print("query to consider:", query_to_consider)
         # best performance for each query
-        best_performance: Dict[int, int] = dict()
+        best_micro_performance = dict()
         for t2 in range(1, micro_episode + 1):
             env.reset()
             selected_light_actions = light_root.sample(t2)
@@ -136,7 +135,8 @@ while t1 < macro_episode:
                 state = env.step_without_evaluation(selected_light_action)
 
             sample_num = math.ceil(constants.sample_rate * len(query_to_consider))
-            sampled_query_list = list(random.choices(query_to_consider, k=sample_num))
+            sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
+
             run_time = env.evaluate_light_under_heavy([all_queries[select_query] for select_query in sampled_query_list],
                                                           [constants.default_runtime[select_query] for select_query in sampled_query_list])
             # run_time = [11] * nr_query
@@ -153,17 +153,29 @@ while t1 < macro_episode:
             default_time = sum(constants.default_runtime[select_query] for select_query in sampled_query_list)
             light_reward = default_time / total_run_time
             light_root.update_statistics(light_reward, selected_light_actions)
+
             # update the best gain for each query
-            for invoke_id in range(len(sampled_query_list)):
-                query = sampled_query_list[invoke_id]
-                if query in best_performance:
-                    if run_time[invoke_id] < best_performance[query]:
-                        best_performance[query] = run_time[invoke_id]
+            for sample_query_id in range(len(sampled_query_list)):
+                sample_query = sampled_query_list[sample_query_id]
+                if sample_query in best_micro_performance:
+                    # if we get better improvement, then set it to better time
+                    if run_time[sample_query_id] < best_micro_performance[sample_query]:
+                        best_micro_performance[sample_query] = run_time[sample_query_id]
                 else:
-                    best_performance[query] = run_time[invoke_id]
+                    best_micro_performance[sample_query] = run_time[sample_query_id]
+
             if sum(run_time) < best_reward:
                 best_reward = sum(run_time)
             print("run_time:", total_run_time)
+
+            # default time
+            other_default_time = sum(constants.default_runtime[select_query] for select_query in range(nr_query) if
+                                     select_query not in sampled_query_list)
+            print("estimate whole workload time:", (other_default_time + total_run_time))
+
+            current_time = time.time()
+            print("current global time:", (current_time - start_time))
+            print("global time for indices:", idx_build_time)
 
         print("best micro-episode reward: %d" % best_reward)
         # calculate the improvement of each index
@@ -173,11 +185,11 @@ while t1 < macro_episode:
         for action in remove_terminate_heavy_actions:
             # get related queries of the select index
             queries = index_query_info[action]
-            # index_improvement = sum(baseline_runtime[query] - best_performance[query] for query in queries)
+            index_improvement = sum(constants.default_runtime[query] - best_micro_performance[query] for query in queries)
             # index_improvement = sum(constants.timeout - best_performance[query] for query in queries)
-            index_improvement = dict()
-            for query in queries:
-                index_improvement[query] = best_performance[query]
+            # index_improvement = dict()
+            # for query in queries:
+            #     index_improvement[query] = best_micro_performance[query]
             improvements[action] = index_improvement
         print("improvement:", improvements)
         update_info.append((improvements, selected_heavy_actions))
@@ -189,6 +201,8 @@ while t1 < macro_episode:
     heavy_root.print()
     print("time for indices:", idx_build_time)
     print("best heavy action", heavy_root.best_actions())
+    current_time = time.time()
+    print("total time:", (current_time - start_time))
     t1 += delay_time
 
 print("best heavy action", heavy_root.best_actions())

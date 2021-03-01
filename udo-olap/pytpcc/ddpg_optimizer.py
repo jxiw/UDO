@@ -1,3 +1,6 @@
+import random
+import time
+
 import gym
 import gym_olapgame
 import tensorflow as tf
@@ -5,12 +8,12 @@ from tensorflow.keras import layers
 import numpy as np
 import matplotlib.pyplot as plt
 
-problem = "opgame-v0"
+problem = "olapgame-v0"
 env = gym.make(problem)
 
 num_states = env.observation_space.shape[0]
 print("Size of State Space ->  {}".format(num_states))
-num_actions = env.nA
+num_actions = env.nA_index
 print("Size of Action Space ->  {}".format(num_actions))
 
 upper_bound = 1
@@ -190,18 +193,33 @@ exploration.
 """
 
 
-def policy(state, noise_object):
+def policy(state, noise_object, previous_actions):
     sampled_actions = tf.squeeze(actor_model(state))
     noise = noise_object()
     # Adding noise to action
     sampled_actions = sampled_actions.numpy() + noise
-    print(sampled_actions)
+    print("sampled_actions:", sampled_actions)
 
     # We make sure action is within bounds
     legal_action = np.clip(sampled_actions, lower_bound, upper_bound)
 
     action_weights = [np.squeeze(legal_action)]
-    action = np.random.choice(np.flatnonzero(action_weights == max(action_weights)))
+    print(action_weights)
+    max_action_weight = -1000
+    nr_action = len(action_weights[0])
+    start_action = random.randrange(0, nr_action)
+    action = 0
+    print("start_action", start_action)
+    for action_idx in range(0, nr_action):
+        current_action = (start_action + action_idx) % nr_action
+        # print("action_weights[action]:", action_weights[action])
+        # print("max_action_weight:", max_action_weight)
+        # print("action_weights:", action_weights[0])
+        if (current_action not in previous_actions) and (action_weights[0][current_action] > max_action_weight):
+            max_action_weight = action_weights[0][current_action]
+            action = current_action
+
+    # action = np.random.choice(np.flatnonzero(action_weights == max(action_weights)))
     # action = np.argmax(action_weights)
     return action
 
@@ -229,7 +247,7 @@ actor_lr = 0.001
 critic_optimizer = tf.keras.optimizers.Adam(critic_lr)
 actor_optimizer = tf.keras.optimizers.Adam(actor_lr)
 
-total_episodes = 100
+total_episodes = 10000
 # Discount factor for future rewards
 gamma = 0.99
 # Used to update target networks
@@ -248,12 +266,15 @@ ep_reward_list = []
 # To store average reward history of last few episodes
 avg_reward_list = []
 
+start_time = time.time()
+
 # Takes about 4 min to train
 for ep in range(total_episodes):
 
     prev_state = env.reset()
     episodic_reward = 0
 
+    previous_actions = []
     while True:
         # Uncomment this to see the Actor in action
         # But not in a python notebook.
@@ -261,12 +282,17 @@ for ep in range(total_episodes):
 
         tf_prev_state = tf.expand_dims(tf.convert_to_tensor(prev_state), 0)
 
-        action = policy(tf_prev_state, ou_noise)
+        action = policy(tf_prev_state, ou_noise, previous_actions)
+        previous_actions.append(action)
         # Recieve state and reward from environment.
         state, reward, done, info = env.step(action)
 
         buffer.record((prev_state, action, reward, state))
         episodic_reward += reward
+
+        current_time = time.time()
+        print("episode:", ep)
+        print("evaluate duration:", (current_time - start_time))
 
         buffer.learn()
         update_target(target_actor.variables, actor_model.variables, tau)

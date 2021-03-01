@@ -76,11 +76,12 @@ def startLoading(driverClass, scaleParameters, args, config):
     debug = logging.getLogger().isEnabledFor(logging.DEBUG)
     
     # Split the warehouses into chunks
-    w_ids = map(lambda x: [ ], range(args['clients']))
+    w_ids = list(map(lambda x: [ ], range(args['clients'])))
     for w_id in range(scaleParameters.starting_warehouse, scaleParameters.ending_warehouse+1):
         idx = w_id % args['clients']
         w_ids[idx].append(w_id)
     ## FOR
+    print(w_ids)
     
     loader_results = [ ]
     for i in range(args['clients']):

@@ -32,7 +32,7 @@ optimizer = order_optimizer.OrderOptimizer(index_card_info, env.nA_reorder)
 
 print("terminate_action:", terminate_action)
 # prepare the heavy configurations
-delay_time = 15
+delay_time = 10
 
 global_max_reward = 0
 global_max_action = []
@@ -51,8 +51,8 @@ total_time = 0
 # reset_database = 2
 
 t1 = 1
+total_start = time.time()
 while t1 < macro_episode:
-    total_start = time.time()
     selected_heavy_action_batch = []
     configuration_to_evaluate = []
     # remove_terminate_action_batch = []
@@ -118,6 +118,9 @@ while t1 < macro_episode:
             print("throughput:", total_throughput)
             print("reward:", light_reward)
             print("light tree best action:", light_root.best_actions())
+            print("micro time for indices:", idx_build_time)
+            total_end = time.time()
+            print("micro total time:", (total_end - total_start))
             if total_throughput > best_throughput:
                 best_throughput = total_throughput
                 best_actions = selected_light_actions
@@ -147,11 +150,10 @@ while t1 < macro_episode:
     print("reset database")
     env.reset_database()
     heavy_root.print()
-    print("time for indices:", idx_build_time)
-    print("best heavy action:", heavy_root.best_actions())
     total_end = time.time()
-    total_time += (total_end - total_start)
-    print("total time:", total_time)
+    print("macro time for indices:", idx_build_time)
+    print("macro total time:", (total_end - total_start))
+    print("best heavy action:", heavy_root.best_actions())
     # evaluate those actions
     previous_set = set()
     t1 += delay_time

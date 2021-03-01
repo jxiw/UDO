@@ -1,6 +1,6 @@
 import numpy as np
 import gym
-import gym_opgame
+import gym_olapgame
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Flatten
@@ -9,7 +9,7 @@ from tensorflow.keras.optimizers import Adam
 from rl.agents import SARSAAgent
 from rl.policy import BoltzmannQPolicy
 
-ENV_NAME = 'opgame-v0'
+ENV_NAME = 'olapgame-v0'
 
 # Get the environment and extract the number of actions.
 env = gym.make(ENV_NAME)
@@ -20,7 +20,6 @@ print("nr action:", nb_actions)
 print("observation space:", env.observation_space.shape)
 
 # Next, we build a very simple model.
-model = Sequential()
 model = Sequential()
 model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
 model.add(Dense(52))
@@ -38,6 +37,7 @@ print(model.summary())
 
 # SARSA does not require a memory.
 policy = BoltzmannQPolicy()
+# policy.select_action()
 sarsa = SARSAAgent(model=model, nb_actions=nb_actions, nb_steps_warmup=10, policy=policy)
 sarsa.compile(Adam(lr=1e-3), metrics=['mae'])
 
