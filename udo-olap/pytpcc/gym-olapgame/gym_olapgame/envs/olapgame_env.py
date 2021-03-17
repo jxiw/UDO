@@ -14,7 +14,6 @@ from drivers.postgresdriver import PostgresDriver
 from . import index
 from . import parameter
 
-
 class OLAPOptimizationGameEnv(gym.Env):
 
     def check_constraint(self, constraints, prev_unit, next_unit):

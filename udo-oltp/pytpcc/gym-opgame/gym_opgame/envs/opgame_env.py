@@ -520,10 +520,8 @@ class OptimizationGameEnv(gym.Env):
             self.driver.setSystemParameter(parameter_change_sql)
 
         # invoke transaction reorder
-        proc_info = {"payment": invoke_payment_proc, "delivery": invoke_delivery_proc,
-                     "new_order": invoke_new_order_proc}
-        print(proc_info)
-        self.scaleParameters.changeInvokeProcedure(proc_info)
+
+
 
         # invoke transaction reorder
         tx_results = tpcc.startExecution(self.driverClass, self.scaleParameters, self.args, self.config)

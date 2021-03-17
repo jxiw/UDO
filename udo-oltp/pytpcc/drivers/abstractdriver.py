@@ -26,8 +26,6 @@
 
 from datetime import datetime
 
-import MySQLdb
-
 import constants
 
 ## ==============================================
