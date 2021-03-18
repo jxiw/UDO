@@ -30,7 +30,7 @@ env = gym.make('olapgame-v0')
 heavy_tree_height = 3
 light_tree_height = 5
 
-init_state = env.map_number_to_state(0)
+init_state = env.state_decoder(0)
 macro_episode = 10000
 micro_episode = 5
 
@@ -44,7 +44,7 @@ global_max_reward = 0
 global_max_action = []
 
 env.reset()
-constants.default_runtime = env.evaluate_light_under_heavy(all_queries, [0] * len(all_queries))
+constants.default_runtime = env.evaluate_light(all_queries, [0] * len(all_queries))
 
 heavy_root = delay_uct_node.Delay_Uct_Node(0, 0, heavy_tree_height, terminate_action, init_state, env)
 idx_build_time = 0
@@ -124,7 +124,7 @@ while t1 < macro_episode:
             sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
             print("sampled_query_list:", sampled_query_list)
             # obtain run time info by running queries within timeout
-            run_time = env.evaluate_light_under_heavy(
+            run_time = env.evaluate_light(
                 [all_queries[select_query] for select_query in sampled_query_list],
                 [constants.default_runtime[select_query] for select_query in sampled_query_list])
             # the total time of sampled queries

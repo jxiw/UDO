@@ -1,35 +1,3 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------
-# Copyright (C) 2011
-# Andy Pavlo
-# http://www.cs.brown.edu/~pavlo/
-#
-# Original Java Version:
-# Copyright (C) 2008
-# Evan Jones
-# Massachusetts Institute of Technology
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
-# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-# OTHER DEALINGS IN THE SOFTWARE.
-# -----------------------------------------------------------------------
-
-
 # PG version of TPCH
 # QUERIES = {
 #     "q1": '''
@@ -812,6 +780,8 @@ cardinality_info = {
     "REGION": 5,
     "SUPPLIER": 10000
 }
+
+# for imdb benchmark
 #
 # QUERIES = {
 #     '01a': '''SELECT MIN(mc.note) AS production_note, MIN(t.title) AS movie_title, MIN(t.production_year) AS movie_year FROM company_type AS ct, info_type AS it, movie_companies AS mc, movie_info_idx AS mi_idx, title AS t WHERE ct.kind = 'production companies' AND it.info = 'top 250 rank' AND mc.note  not like '%(as Metro-Goldwyn-Mayer Pictures)%' and (mc.note like '%(co-production)%' or mc.note like '%(presents)%') AND ct.id = mc.company_type_id AND t.id = mc.movie_id AND t.id = mi_idx.movie_id AND mc.movie_id = mi_idx.movie_id AND it.id = mi_idx.info_type_id;''',
@@ -953,9 +923,14 @@ cardinality_info = {
 #     "title": 2528312
 # }
 
-sample_rate=1
+# sample rate of queries.
+sample_rate = 1
 
+# reward scale params
 light_reward_scale = 10
 heavy_reward_scale = 10
 
-default_runtime=[]
+# default_runtime=[]
+
+
+

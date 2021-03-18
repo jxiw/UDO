@@ -1,59 +1,4 @@
-# candidate_indices_creation = [
-#     # lineitem
-#     "CREATE INDEX IDX_LINEITEM_a ON LINEITEM (L_SHIPDATE, L_DISCOUNT, L_QUANTITY) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_b ON LINEITEM (L_SHIPDATE, L_DISCOUNT) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_c ON LINEITEM (L_SHIPDATE, L_QUANTITY) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_d ON LINEITEM (L_SHIPDATE) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_e ON LINEITEM (L_DISCOUNT) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_f ON LINEITEM (L_QUANTITY) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_g ON LINEITEM (L_ORDERKEY, L_SUPPKEY) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_h ON LINEITEM (L_RECEIPTDATE) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_i ON LINEITEM (L_COMMITDATE) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_j ON LINEITEM (L_SHIPMODE) USING BTREE;",
-#     "CREATE INDEX IDX_LINEITEM_k ON LINEITEM (L_SHIPINSTRUCT) USING BTREE;",
-#     # partsupp
-#     "CREATE INDEX IDX_PARTSUPP_a ON PARTSUPP (PS_PARTKEY, PS_SUPPKEY, PS_SUPPLYCOST) USING BTREE;",
-#     "CREATE INDEX IDX_PARTSUPP_b ON PARTSUPP (PS_SUPPLYCOST) USING BTREE;",
-#     # part
-#     "CREATE INDEX IDX_PART_a ON PART (P_SIZE) USING BTREE;",
-#     "CREATE INDEX IDX_PART_b ON PART (P_TYPE) USING BTREE;",
-#     "CREATE INDEX IDX_PART_c ON PART (P_SIZE, P_TYPE) USING BTREE;",
-#     "CREATE INDEX IDX_PART_d ON PART (P_CONTAINER, P_BRAND, P_SIZE) USING BTREE;",
-#     # order
-#     "CREATE INDEX IDX_ORDERS_a ON ORDERS (O_ORDERDATE) USING BTREE;",
-#     "CREATE INDEX IDX_ORDERS_b ON ORDERS (O_ORDERSTATUS) USING BTREE;",
-#     # customer
-#     # "CREATE INDEX IDX_CUSTOMER_a ON CUSTOMER (C_NATIONKEY, C_CUSTKEY) USING BTREE;"
-# ]
-#
-# candidate_indices_drop = [
-#     # lineitem
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_a;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_b;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_c;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_d;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_e;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_f;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_g;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_h;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_i;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_j;",
-#     "ALTER TABLE LINEITEM drop index IDX_LINEITEM_k;",
-#     # parsupp
-#     "ALTER TABLE PARTSUPP drop index IDX_PARTSUPP_a;",
-#     "ALTER TABLE PARTSUPP drop index IDX_PARTSUPP_b;",
-#     # part
-#     "ALTER TABLE PART drop index IDX_PART_a;",
-#     "ALTER TABLE PART drop index IDX_PART_b;",
-#     "ALTER TABLE PART drop index IDX_PART_c;",
-#     "ALTER TABLE PART drop index IDX_PART_d;",
-#     # order
-#     "ALTER TABLE ORDERS drop index IDX_ORDERS_a;",
-#     "ALTER TABLE ORDERS drop index IDX_ORDERS_b;",
-#     # customer
-#     # "ALTER TABLE CUSTOMER drop index IDX_CUSTOMER_a;"
-# ]
-
+# candidate indices for tpch benchmark
 candidate_indices = [
     # lineitem
     ("IDX_LINEITEM_a", "LINEITEM", "L_SHIPDATE, L_DISCOUNT, L_QUANTITY"),
@@ -133,7 +78,7 @@ candidate_indices = [
     ("IDX_CUSTOMER_n", "CUSTOMER", "C_CUSTKEY, C_NATIONKEY, C_ACCTBAL, C_MKTSEGMENT"),
 ]
 
-#candidate indices for imdb
+#candidate indices for imdb benchmark
 # candidate_indices=[
 #     ('IDX_company_type_0','company_type','id'),
 #     ('IDX_company_type_1','company_type','kind'),
@@ -263,6 +208,7 @@ candidate_indices = [
 #     ('IDX_complete_cast_6','complete_cast','movie_id,subject_id,status_id'),
 # ]
 
+# analyze queries to extract indexes
 import constants
 queries = constants.QUERIES
 cardinality = constants.cardinality_info
@@ -282,67 +228,3 @@ for i in range(len(candidate_indices)):
 
 candidate_indices = [candidate_indice for candidate_indice in candidate_indices if len(candidate_indice[3]) > 0]
 print(len(candidate_indices))
-
-# index_drop_format = "CREATE INDEX %s ON %s (%s) USING BTREE;"
-#     # "ALTER TABLE %s drop index %s;"
-# for index_to_drop in candidate_indices:
-#     # str = index_drop_format % (index_to_drop[1], index_to_drop[0])
-#     str = index_drop_format%(index_to_drop[0], index_to_drop[1], index_to_drop[2])
-#     print(str)
-
-# from drivers.postgresdriver import PostgresDriver
-# import time
-#
-# build_time=[]
-# drop_time=[]
-# for i in range(len(candidate_indices)):
-#     driver = PostgresDriver()
-#     driver.connect()
-#     index_to_test = candidate_indices[i]
-#     build_start = time.time()
-#     driver.buildIndex(index_to_test)
-#     build_end = time.time()
-#     build_duration = build_end - build_start
-#     drop_start = time.time()
-#     driver.dropIndex(index_to_test)
-#     drop_end = time.time()
-#     drop_duration = drop_end - drop_start
-#     build_time.append(build_duration)
-#     drop_time.append(drop_duration)
-#
-# print(build_time)
-# print(drop_time)
-
-# build_time = [10.062487602233887, 6.595608472824097, 6.7226786613464355, 4.00659966468811, 8.677019596099854, 3.6025402545928955, 4.376214504241943, 8.989842891693115, 3.0997631549835205, 4.074562072753906, 3.990327835083008, 6.593176364898682, 6.956168174743652, 7.415594816207886, 4.02343487739563, 4.771207332611084, 4.503595352172852, 3.9361302852630615, 10.123987436294556, 0.40221667289733887, 1.2146565914154053, 0.478299617767334, 0.3858797550201416, 0.4943222999572754, 0.5881712436676025, 0.014337301254272461, 0.12397384643554688, 0.3176851272583008, 0.3452639579772949, 0.4669325351715088, 0.0890047550201416, 0.2313535213470459, 0.32979631423950195, 0.670743465423584, 1.0476508140563965, 1.1842379570007324, 1.0157358646392822, 0.7792880535125732, 0.7809476852416992, 1.4967057704925537, 1.0165095329284668, 1.1409025192260742, 1.1227521896362305, 0.0030426979064941406, 0.002889871597290039, 0.002663135528564453, 0.0029871463775634766, 0.10728788375854492, 0.06882619857788086, 0.13401412963867188, 0.10379266738891602, 0.08771491050720215, 0.32173752784729004, 0.09096741676330566, 0.6871955394744873, 0.08920693397521973, 0.0856320858001709, 0.08772921562194824, 0.08922004699707031]
-# drop_time = [0.008271455764770508, 0.00830078125, 0.012097358703613281, 0.006220817565917969, 0.006087541580200195, 0.006441831588745117, 0.006191253662109375, 0.0063631534576416016, 0.0064275264739990234, 0.006288290023803711, 0.008331537246704102, 0.00842428207397461, 0.012777328491210938, 0.015087127685546875, 0.0064373016357421875, 0.006155490875244141, 0.006365060806274414, 0.006102561950683594, 0.008588790893554688, 0.003853321075439453, 0.003136873245239258, 0.0016417503356933594, 0.0030748844146728516, 0.0035064220428466797, 0.002986431121826172, 0.0011816024780273438, 0.002047300338745117, 0.0026531219482421875, 0.0028107166290283203, 0.002902984619140625, 0.002017498016357422, 0.0020537376403808594, 0.0016627311706542969, 0.002706766128540039, 0.005017280578613281, 0.08480310440063477, 0.003446817398071289, 0.0030388832092285156, 0.002851247787475586, 0.004365205764770508, 0.0023925304412841797, 0.0027954578399658203, 0.0030672550201416016, 0.001178741455078125, 0.0011343955993652344, 0.0010607242584228516, 0.0011153221130371094, 0.0019159317016601562, 0.0017745494842529297, 0.0020554065704345703, 0.0017981529235839844, 0.001760244369506836, 0.0017423629760742188, 0.0022029876708984375, 0.0023221969604492188, 0.0019714832305908203, 0.0018301010131835938, 0.0020020008087158203, 0.001478433609008789]
-#
-# print(len(build_time))
-# print(len(drop_time))
-#
-# print(sorted(build_time, reverse=True))
-# print(sorted(drop_time, reverse=True))
-
-#
-# def print_create_info():
-#     index_creation_format = "CREATE INDEX %s ON %s (%s);"
-#     for index_to_create in candidate_indices:
-#         print(index_creation_format%(index_to_create[0], index_to_create[1], index_to_create[2]))
-#
-# def print_drop_info():
-#     index_drop_format = "drop index %s;"
-#     for index_to_drop in candidate_indices:
-#         print(index_drop_format%(index_to_drop[0]))
-#
-# print_create_info()
-# print_drop_info()
-
-#
-# index = set()
-# for i in candidate_indices:
-#     key = i[0]
-#     if key in index:
-#         print("error")
-#     else:
-#         index.add(key)
-# print(index)
-

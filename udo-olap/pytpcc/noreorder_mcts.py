@@ -11,7 +11,7 @@ from mcts import global_node
 env = gym.make('olapgame-v0')
 
 tree_height = 9
-init_state = env.map_number_to_state(0)
+init_state = env.state_decoder(0)
 total_round = 20000
 
 root = global_node.Global_Node(0, 0, tree_height, init_state, env)
@@ -47,7 +47,7 @@ index_card_info = list(map(lambda x: x[4], index.candidate_indices))
 index_query_info = list(map(lambda x: list(map(lambda y: query_info[y], x[3])), index.candidate_indices))
 
 env.reset()
-constants.default_runtime = env.evaluate_light_under_heavy(all_queries, [0] * len(all_queries))
+constants.default_runtime = env.evaluate_light(all_queries, [0] * len(all_queries))
 # constants.default_runtime = [1] * len(all_queries)
 start_time = time.time()
 
@@ -80,8 +80,8 @@ for round in range(1, total_round, 1):
         query_to_consider = set(range(nr_query))
     sample_num = math.ceil(constants.sample_rate * len(query_to_consider))
     sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
-    run_time = env.evaluate_light_under_heavy([all_queries[select_query] for select_query in sampled_query_list],
-                                              [constants.default_runtime[select_query] for select_query in
+    run_time = env.evaluate_light([all_queries[select_query] for select_query in sampled_query_list],
+                                  [constants.default_runtime[select_query] for select_query in
                                                sampled_query_list])
     total_run_time = sum(run_time)
     default_time = sum(constants.default_runtime[select_query] for select_query in sampled_query_list)

@@ -29,7 +29,7 @@ env = gym.make('olapgame-v0')
 heavy_tree_height = 4
 light_tree_height = 5
 
-init_state = env.map_number_to_state(0)
+init_state = env.state_decoder(0)
 macro_episode = 10000
 micro_episode = 5
 
@@ -43,7 +43,7 @@ global_max_reward = 0
 global_max_action = []
 
 env.reset()
-constants.default_runtime = env.evaluate_light_under_heavy(all_queries, [0] * len(all_queries))
+constants.default_runtime = env.evaluate_light(all_queries, [0] * len(all_queries))
 # [11] * nr_query
     # [0.9940712451934814, 0.6042485237121582, 0.6398360729217529, 0.7888808250427246, 1.339827060699463,
     #                 1.229813575744629, 1.1687071323394775, 4.970311880111694, 9.041927099227905, 4.719568252563477,
@@ -137,8 +137,8 @@ while t1 < macro_episode:
 
             sample_num = math.ceil(constants.sample_rate * len(query_to_consider))
             sampled_query_list = random.choices(list(query_to_consider), k=sample_num)
-            run_time = env.evaluate_light_under_heavy([all_queries[select_query] for select_query in sampled_query_list],
-                                                          [constants.default_runtime[select_query] for select_query in sampled_query_list])
+            run_time = env.evaluate_light([all_queries[select_query] for select_query in sampled_query_list],
+                                          [constants.default_runtime[select_query] for select_query in sampled_query_list])
 
             # run_time = [11] * nr_query
             # if 10 in selected_heavy_actions:

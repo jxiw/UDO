@@ -53,8 +53,8 @@ class Global_Node:
         current_level_state = self.state
         selected_action_path = []
         for current_level in range(self.tree_level + 1, self.tree_height):
-            current_level_state, current_state_id = self.env.obtain_next_state(current_level_state,
-                                                                               current_level_action)
+            current_level_state, current_state_id = self.env.transition(current_level_state,
+                                                                        current_level_action)
             # current_candidate_actions = self.env.choose_all_actions(current_level_state)
             current_candidate_actions = self.env.choose_all_actions(current_level_state)
             current_level_action = random.choice(current_candidate_actions)
@@ -72,7 +72,7 @@ class Global_Node:
             # print(selected_action_idx)
             if can_expand and not self.children[selected_action_idx]:
                 # expend
-                state, state_idx = self.env.obtain_next_state(self.state, selected_action)
+                state, state_idx = self.env.transition(self.state, selected_action)
                 self.children[selected_action_idx] = Global_Node(round, self.tree_level + 1, self.tree_height, state,
                                                               self.env)
             child = self.children[selected_action_idx]

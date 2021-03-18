@@ -6,17 +6,15 @@ import time
 from .postgressysparams import pg_candidate_dbms_parameter
 
 from psycopg2._psycopg import QueryCanceledError
+from .abstractdriver import *
 
 # the DBMS connector for Postgres
-class PostgresDriver():
+class PostgresDriver(AbstractDriver):
 
-    def __init__(self, ddl):
-        super(PostgresDriver, self).__init__("postgres", ddl)
-        logging.debug(ddl)
+    def __init__(self):
+        super(PostgresDriver, self).__init__("postgres")
 
-    ## ----------------------------------------------
-    ## loadConfig
-    ## ----------------------------------------------
+    ## connect to database system
     def connect(self):
         # config to connect dbms
         config = {
@@ -34,6 +32,7 @@ class PostgresDriver():
         self.index_drop_format = "drop index %s;"
         self.is_cluster = True
         self.sys_params = pg_candidate_dbms_parameter
+        self.sys_params_type = len(self.sys_params)
         self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
 
     def runQueriesWithTimeout(self, query_list, timeout):
@@ -82,6 +81,13 @@ class PostgresDriver():
         logging.debug("change system parameter %s" % parameter_sql)
         self.cursor.execute(parameter_sql)
         # self.conn.commit()
+
+    def changeSystemParameter(self, parameter_choices):
+        for i in range(self.sys_params_type):
+            parameter_choice = int(parameter_choices[i])
+            parameter_change_sql = self.sys_params[i][parameter_choice]
+            print(parameter_change_sql)
+            self.setSystemParameter(parameter_change_sql)
 
     def getSystemParameterSpace(self):
         return self.sys_params_space

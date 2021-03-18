@@ -5,11 +5,16 @@ import MySQLdb
 import time
 from .mysqlsysparams import mysql_candidate_dbms_parameter
 
-class MysqlDriver():
+from .abstractdriver import *
 
-    ## ----------------------------------------------
-    ## loadConfig
-    ## ----------------------------------------------
+
+# the DBMS connector for MySQL
+class MysqlDriver(AbstractDriver):
+
+    def __init__(self):
+        super(MysqlDriver, self).__init__("mysql")
+
+    ## connect to database system
     def connect(self):
         # config to connect dbms
         config = {
@@ -39,7 +44,7 @@ class MysqlDriver():
                 self.cursor.execute(query_sql)
                 finish_time = time.time()
                 duration = finish_time - start_time
-                print("query run:%s"%duration)
+                print("query run:%s" % duration)
             except MySQLdb.OperationalError as oe:
                 print(oe)
                 print("timeout")
@@ -56,21 +61,28 @@ class MysqlDriver():
 
     def runQueriesWithoutTimeout(self, query_list):
         # run queries without timeout
-        return self.runQueriesWithTimeout(query_list,  [0 for query in query_list])
+        return self.runQueriesWithTimeout(query_list, [0 for query in query_list])
 
     def buildIndex(self, index_to_create):
         """build index"""
         index_creation_format = "CREATE INDEX %s ON %s (%s) USING BTREE;"
         # logging.debug("create index %s" % index_to_create)
-        self.cursor.execute(index_creation_format%(index_to_create[0], index_to_create[1], index_to_create[2]))
+        self.cursor.execute(index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2]))
         self.conn.commit()
 
     def dropIndex(self, index_to_drop):
         """drop index"""
         index_drop_format = "ALTER TABLE %s drop index %s;"
         # logging.debug("drop index %s" % index_to_drop)
-        self.cursor.execute(index_drop_format%(index_to_drop[1], index_to_drop[0]))
+        self.cursor.execute(index_drop_format % (index_to_drop[1], index_to_drop[0]))
         self.conn.commit()
+
+    def changeSystemParameter(self, parameter_choices):
+        for i in range(self.sys_params_type):
+            parameter_choice = int(parameter_choices[i])
+            parameter_change_sql = self.sys_params[i][parameter_choice]
+            print(parameter_change_sql)
+            self.setSystemParameter(parameter_change_sql)
 
     def setSystemParameter(self, parameter_sql):
         """parameter change"""

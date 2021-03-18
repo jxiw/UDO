@@ -31,7 +31,7 @@ env = gym.make('olapgame-v0')
 heavy_tree_height = 3
 light_tree_height = 5
 
-init_state = env.map_number_to_state(0)
+init_state = env.state_decoder(0)
 macro_episode = 10000
 micro_episode = 5
 

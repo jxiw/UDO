@@ -30,7 +30,7 @@ env = gym.make('olapgame-v0')
 heavy_tree_height = 3
 light_tree_height = 5
 
-init_state = env.map_number_to_state(0)
+init_state = env.state_decoder(0)
 macro_episode = 100000
 micro_episode = 10
 
@@ -149,8 +149,8 @@ while t1 < macro_episode:
 
                 # after obtain the total reward
                 query_to_run = random.sample(query_to_consider, constants.sample_num)
-                run_time = env.evaluate_light_under_heavy([all_queries[select_query] for select_query in query_to_run],
-                                                          [baseline_runtime[select_query] for select_query in query_to_run])
+                run_time = env.evaluate_light([all_queries[select_query] for select_query in query_to_run],
+                                              [baseline_runtime[select_query] for select_query in query_to_run])
                 total_run_time = sum(run_time)
                 # another update method
                 # current_reward = constants.light_reward_scale / total_run_time

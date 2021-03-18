@@ -6,13 +6,13 @@ import gym
 import numpy as np
 from gym import spaces
 
-# from drivers.mysqldriver import MysqlDriver
 import constants
-from drivers.mysqldriver import MysqlDriver
+
+# from drivers.mysqldriver import MysqlDriver
 from drivers.postgresdriver import PostgresDriver
 
-from . import index
-from . import parameter
+from drivers import index
+
 
 class OLAPOptimizationGameEnv(gym.Env):
 
@@ -26,50 +26,64 @@ class OLAPOptimizationGameEnv(gym.Env):
         # init
         super(OLAPOptimizationGameEnv, self).__init__()
 
-        # index action space
-        # total number of indices to consider is 20
-        self.index_candidate_num = len(index.candidate_indices)
-
-        # parameter action space
-        self.parameter_candidate = [len(specific_parameter) for specific_parameter in
-                                    parameter.candidate_dbms_parameter]
-        self.parameter_candidate_num = len(self.parameter_candidate)
-
-        # combine the actions from 2 sub actions
-        # define action and observation space
-        self.nA_index = self.index_candidate_num
-        self.nA_parameter = sum(self.parameter_candidate)
-        self.nA = int((self.nA_index + self.nA_parameter))
-        print(self.nA)
-
-        self.nS_index = int(math.pow(2, self.index_candidate_num))
-        self.nS_parameter = np.prod(self.parameter_candidate)
-        self.nS = int(self.nS_index * self.nS_parameter)
-
-        # action space
-        self.action_space = spaces.Discrete(self.nA)
-
-        # change the observation space
-        observation_space_array = np.concatenate([np.full(self.index_candidate_num, 1), self.parameter_candidate])
-        self.observation_space = spaces.MultiDiscrete(observation_space_array)
-
         # our transition matrix is a deterministic matrix
+
+        # create a dbms driver
         # self.driver = MysqlDriver()
         self.driver = PostgresDriver()
         self.driver.connect()
-        self.start_time = time.time()
+
+        # initial index action tuning space
+        # total number of indices to consider is 20
+        self.index_candidate_num = len(index.candidate_indices)
+
+        # initial system parameter space
+        self.parameter_candidate = self.driver.getSystemParameterSpace()
+        self.parameter_candidate_num = len(self.parameter_candidate)
+
+        # combine the actions from 2 sub actions
+        # action space
+        self.nA_index = self.index_candidate_num
+        self.nA_parameter = sum(self.parameter_candidate)
+        self.nA = int(self.nA_index + self.nA_parameter)
+        self.action_space = spaces.Discrete(self.nA)
+        # print(self.nA)
+
+        # state space
+        self.nS_index = int(math.pow(2, self.index_candidate_num))
+        self.nS_parameter = np.prod(self.parameter_candidate)
+        self.nS = int(self.nS_index * self.nS_parameter)
+        # print(self.nS)
+
+        # change the observation space
+        # observation space
+        observation_space_array = np.concatenate([np.full(self.index_candidate_num, 1), self.parameter_candidate])
+        self.observation_space = spaces.MultiDiscrete(observation_space_array)
+        self.current_state = np.concatenate(
+            [np.zeros(self.index_candidate_num), np.zeros(self.parameter_candidate_num)])
+
+        # the MDP init setting
+        # index build time
         self.accumulated_index_time = 0
+        # horizon
         self.horizon = 9
+        # current step
         self.cr_step = 0
+        # start time
+        self.start_time = time.time()
 
-        self.all_queries = list(constants.QUERIES.keys())
-        nr_query = len(self.all_queries)
-        query_info = {self.all_queries[idx]: idx for idx in range(nr_query)}
-        self.current_state = np.concatenate([np.zeros(self.index_candidate_num), np.zeros(self.parameter_candidate_num)])
-        self.index_query_info = list(map(lambda x: list(map(lambda y: query_info[y], x[3])), index.candidate_indices))
-        self.default_default_runtime = self.evaluate_light_under_heavy(self.all_queries, [0] * len(self.all_queries))
+        # get all queries in the given benchmark
+        self.queries = constants.QUERIES
+        self.nr_query = len(self.queries)
+        query_to_id = {self.queries[idx]: idx for idx in range(self.nr_query)}
+        self.index_to_applicable_queries = list(
+            map(lambda x: list(map(lambda y: query_to_id[y], x[3])), index.candidate_indices))
 
-    def map_number_to_state(self, num):
+        # the default run time
+        self.default_default_runtime = self.driver.runQueriesWithoutTimeout(list(self.queries.values()))
+
+    # map a number to a state
+    def state_decoder(self, num):
         index_pos = int(num % self.nS_index)
         index_state_string = np.binary_repr(int(index_pos), width=self.index_candidate_num)[::-1]
         # index stata represented in string
@@ -81,7 +95,8 @@ class OLAPOptimizationGameEnv(gym.Env):
             parameter_value = int(parameter_value / self.parameter_candidate[i])
         return index_state + parameter_pos
 
-    def map_state_to_num(self, state):
+    # map a state to a number
+    def state_encoder(self, state):
         index_state = state[:self.index_candidate_num]
         parameter_state = state[self.index_candidate_num:]
         index_pos = int("".join([str(int(a)) for a in reversed(index_state)]), 2)
@@ -93,12 +108,14 @@ class OLAPOptimizationGameEnv(gym.Env):
         pos = index_pos + parameter_pos * self.nS_index
         return int(pos)
 
+    # available heavy actions for a state
     def choose_all_heavy_actions(self, state):
         index_state = state[:self.index_candidate_num]
         # check which indices are available or not
         candidate_index_action = [i for i in range(len(index_state)) if index_state[i] == 0]
         return candidate_index_action
 
+    # available light actions for a state
     def choose_all_light_actions(self, state):
         # only allow to change the non-changed parameter
         parameter_state = state[self.index_candidate_num:]
@@ -113,12 +130,14 @@ class OLAPOptimizationGameEnv(gym.Env):
         all_light_actions = candidate_parameter_action
         return all_light_actions
 
+    # available actions for a state
     def choose_all_actions(self, state):
         heavy_action = self.choose_all_heavy_actions(state)
         light_action = self.choose_all_light_actions(state)
         return heavy_action + light_action
 
-    def obtain_next_state(self, state, action):
+    # transition from a state and an action
+    def transition(self, state, action):
         assert action < self.nA
         index_state = state[:self.index_candidate_num]
         parameter_state = state[self.index_candidate_num:]
@@ -142,8 +161,9 @@ class OLAPOptimizationGameEnv(gym.Env):
                 parameter_type += 1
             parameter_state[parameter_type] = parameter_value
         next_state = index_state + parameter_state
-        return next_state, self.map_state_to_num(next_state)
+        return next_state, self.state_encoder(next_state)
 
+    # step without evaluation
     def step_without_evaluation(self, action):
         state = self.current_state
         # parameter state and action
@@ -162,24 +182,21 @@ class OLAPOptimizationGameEnv(gym.Env):
         self.current_state = next_state
         return next_state
 
-    def evaluate_light_under_heavy(self, query_list, timeout):
+    # evaluate the current state
+    def evaluate_light(self, queries, timeout):
         state = self.current_state
-        print ("current state:")
-        print (state)
+        # print("current state:")
+        # print(state)
         index_current_state = state[:self.index_candidate_num]
         parameter_current_state = state[self.index_candidate_num:]
         # change system parameter
-        for i in range(self.parameter_candidate_num):
-            parameter_choice = int(parameter_current_state[i])
-            parameter_change_sql = parameter.candidate_dbms_parameter[i][parameter_choice]
-            print(parameter_change_sql)
-            self.driver.setSystemParameter(parameter_change_sql)
-
+        self.driver.changeSystemParameter(parameter_current_state)
         # invoke queries
-        run_time = self.driver.runQueries(query_list, timeout)
+        run_time = self.driver.runQueriesWithTimeout(queries, timeout)
         print("evaluate time:", sum(run_time))
         return run_time
 
+    # index step
     def index_step(self, add_actions, remove_actions):
         # one index build or drop action
         for add_action in add_actions:
@@ -198,7 +215,7 @@ class OLAPOptimizationGameEnv(gym.Env):
     def index_add_step(self, add_action):
         # add action
         index_to_create = index.candidate_indices[add_action]
-        #build index action
+        # build index action
         print("create index")
         print(index_to_create)
         self.driver.buildIndex(index_to_create)
@@ -214,8 +231,8 @@ class OLAPOptimizationGameEnv(gym.Env):
 
     def step(self, action):
         state = self.current_state
-        print("action:", action)
-        print("state:", state)
+        # print("action:", action)
+        # print("state:", state)
         # parameter state and action
         index_current_state = state[:self.index_candidate_num]
         parameter_current_state = state[self.index_candidate_num:]
@@ -229,6 +246,7 @@ class OLAPOptimizationGameEnv(gym.Env):
                 self.accumulated_index_time = self.accumulated_index_time + index_time
                 index_current_state[action] = 1
         else:
+            # else parameter switch action
             parameter_action = action - self.nA_index
             parameter_value = 0
             for parameter_type in range(len(self.parameter_candidate)):
@@ -238,29 +256,23 @@ class OLAPOptimizationGameEnv(gym.Env):
                     break
                 parameter_value = parameter_value + parameter_range
             parameter_current_state[parameter_type] = parameter_value
-            for i in range(self.parameter_candidate_num):
-                parameter_choice = int(parameter_current_state[i])
-                parameter_change_sql = parameter.candidate_dbms_parameter[i][parameter_choice]
-                print(parameter_change_sql)
-                self.driver.setSystemParameter(parameter_change_sql)
+            self.driver.changeSystemParameter(parameter_current_state)
 
-        heavy_actions = []
-        for index_pos in range(self.nA_index):
-            if index_current_state[index_pos] == 1:
-                heavy_actions.append(index_pos)
-
+        # heavy actions
+        active_indices = [index_pos for index_pos in range(self.nA_index) if index_current_state[index_pos] == 1]
         query_to_consider = set(
             [applicable_query for applicable_queries in
-             list(map(lambda x: self.index_query_info[x], heavy_actions)) for applicable_query in
+             list(map(lambda x: self.index_to_applicable_queries[x], active_indices)) for applicable_query in
              applicable_queries])
 
         # obtain sample number
         sample_num = math.ceil(constants.sample_rate * len(query_to_consider))
         # generate sample queries
-        sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
+        sample_queries = random.sample(list(query_to_consider), k=sample_num)
 
         # invoke queries
-        run_time = self.driver.runQueries([self.all_queries[select_query] for select_query in sampled_query_list], self.default_default_runtime)
+        run_time = self.driver.runQueriesWithTimeout([self.queries[sample_query] for sample_query in sample_queries],
+                                                     self.default_default_runtime)
         print("run time:", run_time)
         print("index time:", self.accumulated_index_time)
         print("evaluate time:", sum(run_time))
@@ -269,17 +281,11 @@ class OLAPOptimizationGameEnv(gym.Env):
         self.current_state = next_state
         print("next state:", next_state)
 
-        # default_timeout = [10.693569898605347, 0.11094331741333008, 3.72650408744812, 1.0694530010223389, 1.0730197429656982,
-        #            2.2397916316986084, 2.0279834270477295, 3.822448968887329, 7.970007419586182, 1.4352169036865234,
-        #            0.515200138092041, 2.6003406047821045, 12.872627019882202, 2.3702046871185303, 0.0011920928955078125,
-        #            0.46315932273864746, 0.7527892589569092, 2.645094633102417, 0.23529434204101562, 0.8605573177337646,
-        #            10.454352855682373, 0.16903018951416016]
-
-        # default_timeout = [2.114644765853882, 0.3178749084472656, 0.8655669689178467, 0.27109265327453613, 1.0132851600646973, 0.3362388610839844, 0.6741001605987549, 0.4631633758544922, 1.3484652042388916, 0.7488498687744141, 0.12991714477539062, 0.9270060062408447, 1.2022361755371094, 0.3823051452636719, 0.7328939437866211, 0.6157047748565674, 1.9892585277557373, 3.471993923187256, 0.4750077724456787, 1.323035717010498, 0.8502225875854492, 0.41719698905944824]
-
+        # scale the reward
         reward = sum(self.default_default_runtime) / sum(run_time)
         current_time = time.time()
         print("current time:", (current_time - self.start_time))
+
         self.cr_step += 1
         if self.cr_step == self.horizon:
             self.cr_step = 0
@@ -287,6 +293,7 @@ class OLAPOptimizationGameEnv(gym.Env):
         else:
             return next_state, reward, False, {}
 
+    # reset the state
     def reset(self):
         if self.current_state is not None:
             state = self.current_state
@@ -297,9 +304,8 @@ class OLAPOptimizationGameEnv(gym.Env):
                 if index_current_state[i] == 1:
                     index_drop_sql = index.candidate_indices[i]
                     self.driver.dropIndex(index_drop_sql)
-            # set the parameter to default value
-            for i in range(self.parameter_candidate_num):
-                parameter_change_sql = parameter.candidate_dbms_parameter[i][0]
-                self.driver.setSystemParameter(parameter_change_sql)
-        self.current_state = np.concatenate([np.zeros(self.index_candidate_num), np.zeros(self.parameter_candidate_num)])
+            # set the parameter to default value, the first value
+            self.driver.changeSystemParameter(np.zeros(self.parameter_candidate_num))
+        self.current_state = np.concatenate(
+            [np.zeros(self.index_candidate_num), np.zeros(self.parameter_candidate_num)])
         return self.current_state

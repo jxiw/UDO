@@ -10,7 +10,7 @@ light_tree_height = 8
 
 env = gym.make('olapgame-v0')
 env.reset()
-init_state = env.map_number_to_state(0)
+init_state = env.state_decoder(0)
 light_root = uct_node.Uct_Node(0, 0, light_tree_height, init_state, env)
 
 all_queries = list(constants.QUERIES.keys())
@@ -33,7 +33,7 @@ for t2 in range(micro_episode):
         # move to next state
         state = env.step_without_evaluation(selected_light_action)
     # obtain run time info by running queries within timeout
-    run_time = env.evaluate_light_under_heavy(all_queries, constants.default_runtime)
+    run_time = env.evaluate_light(all_queries, constants.default_runtime)
     # the total time of sampled queries
     total_run_time = sum(run_time)
     # the default time of sampled queries
