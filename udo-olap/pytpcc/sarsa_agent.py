@@ -14,8 +14,9 @@ def run_sarsa_agent(duration, horizon):
 
     # Get the environment and extract the number of actions.
     env = gym.make(ENV_NAME)
-    np.random.seed(123)
-    env.seed(123)
+    # np.random.seed(123)
+    # env.seed(123)
+    env.horizon = horizon
     nb_actions = env.action_space.n
     print("nr action:", nb_actions)
     print("observation space:", env.observation_space.shape)

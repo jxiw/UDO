@@ -6,6 +6,7 @@ import gym_olapgame
 import tensorflow as tf
 from tensorflow.keras import layers
 import numpy as np
+
 # import matplotlib.pyplot as plt
 
 problem = "olapgame-v0"
@@ -22,6 +23,73 @@ lower_bound = 0
 print("Max Value of Action ->  {}".format(upper_bound))
 print("Min Value of Action ->  {}".format(lower_bound))
 
+# Learning rate for actor-critic models
+critic_lr = 0.002
+actor_lr = 0.001
+
+critic_optimizer = tf.keras.optimizers.Adam(critic_lr)
+actor_optimizer = tf.keras.optimizers.Adam(actor_lr)
+
+# Discount factor for future rewards
+gamma = 0.99
+# Used to update target networks
+tau = 0.005
+
+"""
+Here we define the Actor and Critic networks. These are basic Dense models
+with `ReLU` activation.
+
+Note: We need the initialization for last layer of the Actor to be between
+`-0.003` and `0.003` as this prevents us from getting `1` or `-1` output values in
+the initial stages, which would squash our gradients to zero,
+as we use the `tanh` activation.
+"""
+
+
+def get_actor():
+    # Initialize weights between -3e-3 and 3-e3
+    last_init = tf.random_uniform_initializer(minval=-0.003, maxval=0.003)
+
+    inputs = layers.Input(shape=(num_states,))
+    out = layers.Dense(256, activation="relu")(inputs)
+    out = layers.Dense(256, activation="relu")(out)
+    outputs = layers.Dense(num_actions, activation="tanh", kernel_initializer=last_init)(out)
+
+    # Our upper bound is 2.0 for Pendulum.
+    outputs = outputs * upper_bound
+    model = tf.keras.Model(inputs, outputs)
+    return model
+
+
+def get_critic():
+    # State as input
+    state_input = layers.Input(shape=(num_states))
+    state_out = layers.Dense(16, activation="relu")(state_input)
+    state_out = layers.Dense(32, activation="relu")(state_out)
+
+    # Action as input
+    action_input = layers.Input(shape=(num_actions))
+    action_out = layers.Dense(32, activation="relu")(action_input)
+
+    # Both are passed through seperate layer before concatenating
+    concat = layers.Concatenate()([state_out, action_out])
+
+    out = layers.Dense(256, activation="relu")(concat)
+    out = layers.Dense(256, activation="relu")(out)
+    outputs = layers.Dense(1)(out)
+
+    # Outputs single value for give state-action
+    model = tf.keras.Model([state_input, action_input], outputs)
+
+    return model
+
+
+actor_model = get_actor()
+critic_model = get_critic()
+
+target_actor = get_actor()
+target_critic = get_critic()
+
 
 class OUActionNoise:
     def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):
@@ -33,7 +101,6 @@ class OUActionNoise:
         self.reset()
 
     def __call__(self):
-        # Formula taken from https://www.wikipedia.org/wiki/Ornstein-Uhlenbeck_process.
         x = (
                 self.x_prev
                 + self.theta * (self.mean - self.x_prev) * self.dt
@@ -141,55 +208,6 @@ def update_target(target_weights, weights, tau):
 
 
 """
-Here we define the Actor and Critic networks. These are basic Dense models
-with `ReLU` activation.
-
-Note: We need the initialization for last layer of the Actor to be between
-`-0.003` and `0.003` as this prevents us from getting `1` or `-1` output values in
-the initial stages, which would squash our gradients to zero,
-as we use the `tanh` activation.
-"""
-
-
-def get_actor():
-    # Initialize weights between -3e-3 and 3-e3
-    last_init = tf.random_uniform_initializer(minval=-0.003, maxval=0.003)
-
-    inputs = layers.Input(shape=(num_states,))
-    out = layers.Dense(256, activation="relu")(inputs)
-    out = layers.Dense(256, activation="relu")(out)
-    outputs = layers.Dense(num_actions, activation="tanh", kernel_initializer=last_init)(out)
-
-    # Our upper bound is 2.0 for Pendulum.
-    outputs = outputs * upper_bound
-    model = tf.keras.Model(inputs, outputs)
-    return model
-
-
-def get_critic():
-    # State as input
-    state_input = layers.Input(shape=(num_states))
-    state_out = layers.Dense(16, activation="relu")(state_input)
-    state_out = layers.Dense(32, activation="relu")(state_out)
-
-    # Action as input
-    action_input = layers.Input(shape=(num_actions))
-    action_out = layers.Dense(32, activation="relu")(action_input)
-
-    # Both are passed through seperate layer before concatenating
-    concat = layers.Concatenate()([state_out, action_out])
-
-    out = layers.Dense(256, activation="relu")(concat)
-    out = layers.Dense(256, activation="relu")(out)
-    outputs = layers.Dense(1)(out)
-
-    # Outputs single value for give state-action
-    model = tf.keras.Model([state_input, action_input], outputs)
-
-    return model
-
-
-"""
 `policy()` returns an action sampled from our Actor network plus some noise for
 exploration.
 """
@@ -227,36 +245,19 @@ def policy(state, noise_object, previous_actions):
     return action
 
 
+# run the ddpg agent
+std_dev = 0.2
+ou_noise = OUActionNoise(mean=np.zeros(1), std_deviation=float(std_dev) * np.ones(1))
+
+# Making the weights equal initially
+target_actor.set_weights(actor_model.get_weights())
+target_critic.set_weights(critic_model.get_weights())
+
+buffer = Buffer(50000, 64)
+
 def run_ddpg_agent(duration, horizon):
-    # run the ddpg agent
-    std_dev = 0.2
-    ou_noise = OUActionNoise(mean=np.zeros(1), std_deviation=float(std_dev) * np.ones(1))
-
-    actor_model = get_actor()
-    critic_model = get_critic()
-
-    target_actor = get_actor()
-    target_critic = get_critic()
-
-    # Making the weights equal initially
-    target_actor.set_weights(actor_model.get_weights())
-    target_critic.set_weights(critic_model.get_weights())
-
-    # Learning rate for actor-critic models
-    critic_lr = 0.002
-    actor_lr = 0.001
-
-    critic_optimizer = tf.keras.optimizers.Adam(critic_lr)
-    actor_optimizer = tf.keras.optimizers.Adam(actor_lr)
-
-    # total_episodes = 10000
-    # Discount factor for future rewards
-    gamma = 0.99
-    # Used to update target networks
-    tau = 0.005
-
-    buffer = Buffer(50000, 64)
-
+    # set the horizon
+    env.horizon = horizon
     duration_in_seconds = duration * 3600
 
     """

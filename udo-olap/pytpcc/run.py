@@ -1,7 +1,7 @@
 import argparse
 from sarsa_agent import run_sarsa_agent
 from ddpg_agent import run_ddpg_agent
-from udo_optimizer import run_udo, run_simplified_udo
+from udo_simplifed import run_simplifed_udo_agent
 import json
 
 udo_parser = argparse.ArgumentParser(description='UDO optimizer.')
@@ -52,7 +52,7 @@ if args['agent'] == 'udo':
     run_udo()
 elif args['agent'] == 'udo-s':
     # run simplified udo
-    run_simplified_udo()
+    run_simplifed_udo_agent(duration=args['duration'], horizon=args['horizon'])
 elif args['agent'] == 'ddpg':
     # run ddpg deep rl
     run_ddpg_agent(duration=args['duration'], horizon=args['horizon'])
