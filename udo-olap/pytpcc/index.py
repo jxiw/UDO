@@ -209,22 +209,22 @@ candidate_indices = [
 # ]
 
 # analyze queries to extract indexes
-import constants
-queries = constants.QUERIES
-cardinality = constants.cardinality_info
-for i in range(len(candidate_indices)):
-    contain_query = []
-    for query_id, query_str in queries.items():
-        # print(candidate_indices[i][2])
-        if "where" in query_str:
-            where_clause = query_str[query_str.index("where"):]
-        else:
-            where_clause = query_str
-        contain_columns = candidate_indices[i][2].lower().split(",")
-        if all(contain_column in where_clause for contain_column in contain_columns):
-            contain_query.append(query_id)
-    index_cardinality = cardinality[candidate_indices[i][1]]
-    candidate_indices[i] += (contain_query, index_cardinality, )
-
-candidate_indices = [candidate_indice for candidate_indice in candidate_indices if len(candidate_indice[3]) > 0]
-print(len(candidate_indices))
+# import constants
+# queries = constants.QUERIES
+# cardinality = constants.cardinality_info
+# for i in range(len(candidate_indices)):
+#     contain_query = []
+#     for query_id, query_str in queries.items():
+#         # print(candidate_indices[i][2])
+#         if "where" in query_str:
+#             where_clause = query_str[query_str.index("where"):]
+#         else:
+#             where_clause = query_str
+#         contain_columns = candidate_indices[i][2].lower().split(",")
+#         if all(contain_column in where_clause for contain_column in contain_columns):
+#             contain_query.append(query_id)
+#     index_cardinality = cardinality[candidate_indices[i][1]]
+#     candidate_indices[i] += (contain_query, index_cardinality, )
+#
+# candidate_indices = [candidate_indice for candidate_indice in candidate_indices if len(candidate_indice[3]) > 0]
+# print(len(candidate_indices))

@@ -11,7 +11,7 @@ import constants
 # from drivers.mysqldriver import MysqlDriver
 from drivers.postgresdriver import PostgresDriver
 
-from drivers import index
+import index
 
 
 class OLAPOptimizationGameEnv(gym.Env):

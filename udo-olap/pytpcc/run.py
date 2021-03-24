@@ -2,6 +2,7 @@ import argparse
 from sarsa_agent import run_sarsa_agent
 from ddpg_agent import run_ddpg_agent
 from udo_simplifed import run_simplifed_udo_agent
+import index
 import json
 import constants
 
@@ -16,6 +17,8 @@ udo_parser.add_argument('-username', default="udo",
 udo_parser.add_argument('-pass', default="udo",
                         help='password')
 udo_parser.add_argument('-queries', default="tpcc_query.sql",
+                        help='the input query file')
+udo_parser.add_argument('-indices',
                         help='the input query file')
 # tuning time
 udo_parser.add_argument('-duration', default=5,
@@ -47,11 +50,44 @@ if args.load_json:
         t_args.__dict__.update(json.load(f))
         args = udo_parser.parse_args(namespace=t_args)
 
+# init queries
 if args['queries']:
     with open(args['queries']) as f:
         content = f.readlines()
         queries = [x.strip() for x in content]
         constants.QUERIES = {i: queries[i] for i in range(len(queries))}
+
+# init indices with external files
+if args['indices']:
+    # analyze queries to extract indexes
+    with open(args['indices']) as f:
+        content = f.readlines()
+        indices = [x.strip() for x in content]
+        index.candidate_indices = []
+        for index_str in indices:
+            index = index_str.split(";")
+            index.candidate_indices.append((index[0], index[1], index[2]))
+
+# obtain index applicable queries
+for i in range(len(index.candidate_indices)):
+    contain_query = []
+    for query_id, query_str in constants.QUERIES.items():
+        # print(candidate_indices[i][2])
+        if "where" in query_str:
+            where_clause = query_str[query_str.index("where"):].lower()
+        else:
+            where_clause = query_str.lower()
+        contain_columns = index.candidate_indices[i][2].lower().split(",")
+        if all(contain_column in where_clause for contain_column in contain_columns):
+        # if any(contain_column in where_clause for contain_column in contain_columns):
+            contain_query.append(query_id)
+    index_cardinality = constants.cardinality[index.candidate_indices[i][1]]
+    index.candidate_indices[i] += (contain_query, index_cardinality,)
+
+# filter indices which contains at least has one appliable query
+index.candidate_indices = [candidate_index for candidate_index in index.candidate_indices if len(candidate_index[3]) > 0]
+# print(len(index.
+# candidate_indices))
 
 # if the agent is udo
 if args['agent'] == 'udo':

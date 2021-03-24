@@ -770,17 +770,6 @@ QUERIES = {
     '''
 }
 
-cardinality_info = {
-    "CUSTOMER": 150000,
-    "ORDERS": 1500000,
-    "LINEITEM": 6001215,
-    "NATION": 25,
-    "PARTSUPP": 800000,
-    "PART": 200000,
-    "REGION": 5,
-    "SUPPLIER": 10000
-}
-
 # for imdb benchmark
 #
 # QUERIES = {
@@ -922,6 +911,18 @@ cardinality_info = {
 #     "role_type": 12,
 #     "title": 2528312
 # }
+
+
+cardinality_info = {
+    "CUSTOMER": 150000,
+    "ORDERS": 1500000,
+    "LINEITEM": 6001215,
+    "NATION": 25,
+    "PARTSUPP": 800000,
+    "PART": 200000,
+    "REGION": 5,
+    "SUPPLIER": 10000
+}
 
 # sample rate of queries.
 sample_rate = 1
