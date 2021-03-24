@@ -3,6 +3,7 @@ from sarsa_agent import run_sarsa_agent
 from ddpg_agent import run_ddpg_agent
 from udo_simplifed import run_simplifed_udo_agent
 import json
+import constants
 
 udo_parser = argparse.ArgumentParser(description='UDO optimizer.')
 # database setting
@@ -45,6 +46,12 @@ if args.load_json:
         t_args = argparse.Namespace()
         t_args.__dict__.update(json.load(f))
         args = udo_parser.parse_args(namespace=t_args)
+
+if args['queries']:
+    with open(args['queries']) as f:
+        content = f.readlines()
+        queries = [x.strip() for x in content]
+        constants.QUERIES = {i: queries[i] for i in range(len(queries))}
 
 # if the agent is udo
 if args['agent'] == 'udo':
