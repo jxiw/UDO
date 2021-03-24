@@ -7,7 +7,7 @@ from mcts import delay_exp3_node
 from mcts import uct_node
 import time
 import constants
-from old import order_optimizer
+import order_optimizer
 
 all_queries = list(constants.QUERIES.keys())
 nr_query = len(all_queries)

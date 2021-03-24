@@ -6,7 +6,6 @@ import numpy as np
 import gurobipy as gp
 from gurobipy import GRB
 
-
 class OrderOptimizer:
     def __init__(self, index_card_info):
         self.index_card_info = index_card_info

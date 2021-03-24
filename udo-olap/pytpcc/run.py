@@ -56,7 +56,7 @@ if args['queries']:
 # if the agent is udo
 if args['agent'] == 'udo':
     # run udo
-    run_udo()
+    run_udo(duration=args['duration'], horizon=args['horizon'])
 elif args['agent'] == 'udo-s':
     # run simplified udo
     run_simplifed_udo_agent(duration=args['duration'], horizon=args['horizon'])

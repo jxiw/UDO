@@ -1,6 +1,6 @@
 from gym_olapgame.envs import index
 
-from old import order_optimizer
+import order_optimizer
 import time
 
 log = [

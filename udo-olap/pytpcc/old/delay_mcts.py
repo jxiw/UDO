@@ -1,7 +1,7 @@
 import gym
 from gym_olapgame.envs import index
 
-from old import order_optimizer
+import order_optimizer
 from mcts import delay_uct_node
 from mcts import uct_node
 import time

@@ -8,7 +8,7 @@ from mcts import uct_node
 import time
 import constants
 import random
-from old import order_optimizer
+import order_optimizer
 import sys
 
 all_queries = list(constants.QUERIES.keys())
