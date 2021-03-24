@@ -6,7 +6,7 @@ import gym_olapgame
 import tensorflow as tf
 from tensorflow.keras import layers
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 problem = "olapgame-v0"
 env = gym.make(problem)
@@ -86,7 +86,7 @@ class Buffer:
     # This provides a large speed up for blocks of code that contain many small TensorFlow operations such as this one.
     @tf.function
     def update(
-        self, state_batch, action_batch, reward_batch, next_state_batch,
+            self, state_batch, action_batch, reward_batch, next_state_batch,
     ):
         # Training and updating Actor & Critic networks.
         # See Pseudo Code.
@@ -226,6 +226,7 @@ def policy(state, noise_object, previous_actions):
     # action = np.argmax(action_weights)
     return action
 
+
 def run_ddpg_agent(duration, horizon):
     # run the ddpg agent
     std_dev = 0.2
@@ -248,13 +249,15 @@ def run_ddpg_agent(duration, horizon):
     critic_optimizer = tf.keras.optimizers.Adam(critic_lr)
     actor_optimizer = tf.keras.optimizers.Adam(actor_lr)
 
-    total_episodes = 10000
+    # total_episodes = 10000
     # Discount factor for future rewards
     gamma = 0.99
     # Used to update target networks
     tau = 0.005
 
     buffer = Buffer(50000, 64)
+
+    duration_in_seconds = duration * 3600
 
     """
     Now we implement our main training loop, and iterate over episodes.
@@ -268,9 +271,12 @@ def run_ddpg_agent(duration, horizon):
     avg_reward_list = []
 
     start_time = time.time()
+    current_time = time.time()
 
     # Takes about 4 min to train
-    for ep in range(total_episodes):
+    # for ep in range(total_episodes):
+    ep = 0
+    while (current_time - start_time) < duration_in_seconds:
 
         prev_state = env.reset()
         episodic_reward = 0
@@ -294,6 +300,7 @@ def run_ddpg_agent(duration, horizon):
             current_time = time.time()
             print("episode:", ep)
             print("evaluate duration:", (current_time - start_time))
+            ep += 1
 
             buffer.learn()
             update_target(target_actor.variables, actor_model.variables, tau)
@@ -314,10 +321,10 @@ def run_ddpg_agent(duration, horizon):
 
     # Plotting graph
     # Episodes versus Avg. Rewards
-    plt.plot(avg_reward_list)
-    plt.xlabel("Episode")
-    plt.ylabel("Avg. Epsiodic Reward")
-    plt.show()
+    # plt.plot(avg_reward_list)
+    # plt.xlabel("Episode")
+    # plt.ylabel("Avg. Epsiodic Reward")
+    # plt.show()
 
     # Save the weights
     actor_model.save_weights("pendulum_actor.h5")
@@ -325,4 +332,3 @@ def run_ddpg_agent(duration, horizon):
 
     target_actor.save_weights("pendulum_target_actor.h5")
     target_critic.save_weights("pendulum_target_critic.h5")
-
