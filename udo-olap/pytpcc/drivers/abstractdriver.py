@@ -2,10 +2,9 @@
 ## AbstractDriver
 ## ==============================================
 class AbstractDriver(object):
-    def __init__(self, name, ddl):
+    def __init__(self, name, conf):
         self.name = name
-        self.driver_name = "%sDriver" % self.name.title()
-        self.ddl = ddl
+        self.conf = conf
         
     def __str__(self):
         return self.driver_name

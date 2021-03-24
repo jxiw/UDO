@@ -22,16 +22,12 @@ class OLAPOptimizationGameEnv(gym.Env):
                 return False
         return True
 
-    def __init__(self):
+    def __init__(self, dbms_connector):
         # init
         super(OLAPOptimizationGameEnv, self).__init__()
 
         # our transition matrix is a deterministic matrix
-
-        # create a dbms driver
-        # self.driver = MysqlDriver()
-        self.driver = PostgresDriver()
-        self.driver.connect()
+        self.driver = dbms_connector
 
         # initial index action tuning space
         # total number of indices to consider is 20

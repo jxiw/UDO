@@ -1,6 +1,10 @@
 import argparse
+
+from drivers.mysqldriver import MysqlDriver
+from drivers.postgresdriver import PostgresDriver
 from sarsa_agent import run_sarsa_agent
 from ddpg_agent import run_ddpg_agent
+from udo_optimizer import run_udo
 from udo_simplifed import run_simplifed_udo_agent
 import index
 import json
@@ -14,7 +18,7 @@ udo_parser.add_argument('-db', default="tpcc",
                         help='the database to optimizes')
 udo_parser.add_argument('-username', default="udo",
                         help='username')
-udo_parser.add_argument('-pass', default="udo",
+udo_parser.add_argument('-password', default="udo",
                         help='password')
 udo_parser.add_argument('-queries', default="tpcc_query.sql",
                         help='the input query file')
@@ -39,7 +43,7 @@ udo_parser.add_argument('-rl_delay', choices=('UCB', 'Exp3'),
                         help='the delay selection policy')
 # load json file
 udo_parser.add_argument('--load_json',
-    help='Load settings from file in json format. Command line options override values in file.')
+                        help='Load settings from file in json format. Command line options override values in file.')
 
 args = udo_parser.parse_args()
 
@@ -68,6 +72,24 @@ if args['indices']:
             index = index_str.split(";")
             index.candidate_indices.append((index[0], index[1], index[2]))
 
+dbms_conf = {
+    "host": "127.0.0.1",
+    "db": args['db'],
+    "user": args['username'],
+    "passwd": args['password'],
+}
+
+# create a dbms driver
+if args['system'] == "mysql":
+    driver = MysqlDriver(dbms_conf)
+elif args['system'] == "postgres":
+    driver = PostgresDriver(dbms_conf)
+
+# obtain index cardinality information
+driver.connect()
+if not constants.cardinality_info:
+    constants.cardinality_info = driver.cardinalities()
+
 # obtain index applicable queries
 for i in range(len(index.candidate_indices)):
     contain_query = []
@@ -79,20 +101,21 @@ for i in range(len(index.candidate_indices)):
             where_clause = query_str.lower()
         contain_columns = index.candidate_indices[i][2].lower().split(",")
         if all(contain_column in where_clause for contain_column in contain_columns):
-        # if any(contain_column in where_clause for contain_column in contain_columns):
+            # if any(contain_column in where_clause for contain_column in contain_columns):
             contain_query.append(query_id)
-    index_cardinality = constants.cardinality[index.candidate_indices[i][1]]
+    index_cardinality = constants.cardinality_info[index.candidate_indices[i][1]]
     index.candidate_indices[i] += (contain_query, index_cardinality,)
 
 # filter indices which contains at least has one appliable query
-index.candidate_indices = [candidate_index for candidate_index in index.candidate_indices if len(candidate_index[3]) > 0]
+index.candidate_indices = [candidate_index for candidate_index in index.candidate_indices if
+                           len(candidate_index[3]) > 0]
 # print(len(index.
 # candidate_indices))
 
 # if the agent is udo
 if args['agent'] == 'udo':
     # run udo
-    run_udo(duration=args['duration'], horizon=args['horizon'])
+    run_udo_agent(duration=args['duration'], horizon=args['horizon'])
 elif args['agent'] == 'udo-s':
     # run simplified udo
     run_simplifed_udo_agent(duration=args['duration'], horizon=args['horizon'])

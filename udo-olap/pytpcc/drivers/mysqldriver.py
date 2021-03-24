@@ -7,32 +7,46 @@ from .mysqlsysparams import mysql_candidate_dbms_parameter
 
 from .abstractdriver import *
 
-
 # the DBMS connector for MySQL
 class MysqlDriver(AbstractDriver):
 
-    def __init__(self):
-        super(MysqlDriver, self).__init__("mysql")
+    def __init__(self, conf):
+        super(MysqlDriver, self).__init__("mysql", conf)
 
     ## connect to database system
     def connect(self):
         # config to connect dbms
-        config = {
-            "host": "127.0.0.1",
-            "port": 3306,
-            "db": "tpch",
-            # "db": "imdb",
-            "user": "jw2544",
-            "passwd": "jw2544"
-        }
+        # config = {
+        #     "host": "127.0.0.1",
+        #     "port": 3306,
+        #     "db": "tpch",
+        #     # "db": "imdb",
+        #     "user": "jw2544",
+        #     "passwd": "jw2544"
+        # }
 
-        self.conn = MySQLdb.connect(config['host'], config['user'], config['passwd'], config['db'])
+        self.conn = MySQLdb.connect(self.config['host'], self.config['user'], self.config['passwd'], self.config['db'])
         self.cursor = self.conn.cursor()
-        self.index_creation_format = "CREATE INDEX %s ON %s (%s);"
-        self.index_drop_format = "drop index %s;"
+        self.index_creation_format = "CREATE INDEX %s ON %s (%s) USING BTREE;"
+        self.index_drop_format = "ALTER TABLE %s drop index %s;"
         self.is_cluster = True
         self.sys_params = mysql_candidate_dbms_parameter
         self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
+        self.retrieve_table_name_sql = "show tables;"
+        self.cardinality_format = "select count(*) from %s;"
+
+    def cardinalities(self):
+        self.cursor.execute(self.retrieve_table_name_sql)
+        dbms_tables = []
+        cardinality_info = {}
+        for (table_name,) in self.cursor:
+            dbms_tables.append(table_name)
+        for table in dbms_tables:
+            self.cursor.execute(self.cardinality_format % table)
+            result = self.cursor.fetchone()
+            cardinality = result[0]
+            cardinality_info[table] = cardinality
+        return cardinality_info
 
     def runQueriesWithTimeout(self, query_list, timeout):
         run_time = []
@@ -65,16 +79,14 @@ class MysqlDriver(AbstractDriver):
 
     def buildIndex(self, index_to_create):
         """build index"""
-        index_creation_format = "CREATE INDEX %s ON %s (%s) USING BTREE;"
         # logging.debug("create index %s" % index_to_create)
-        self.cursor.execute(index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2]))
+        self.cursor.execute(self.index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2]))
         self.conn.commit()
 
     def dropIndex(self, index_to_drop):
         """drop index"""
-        index_drop_format = "ALTER TABLE %s drop index %s;"
         # logging.debug("drop index %s" % index_to_drop)
-        self.cursor.execute(index_drop_format % (index_to_drop[1], index_to_drop[0]))
+        self.cursor.execute(self.index_drop_format % (index_to_drop[1], index_to_drop[0]))
         self.conn.commit()
 
     def changeSystemParameter(self, parameter_choices):

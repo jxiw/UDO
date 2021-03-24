@@ -10,7 +10,7 @@ import random
 import order_optimizer
 import sys
 
-def run_udo(duration, horizon):
+def run_udo_agent(duration, horizon):
     duration_in_seconds = duration * 3600
 
     all_queries = list(constants.QUERIES.keys())

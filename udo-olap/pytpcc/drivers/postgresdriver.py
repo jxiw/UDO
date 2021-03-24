@@ -11,21 +11,21 @@ from .abstractdriver import *
 # the DBMS connector for Postgres
 class PostgresDriver(AbstractDriver):
 
-    def __init__(self):
-        super(PostgresDriver, self).__init__("postgres")
+    def __init__(self, conf):
+        super(PostgresDriver, self).__init__("postgres", conf)
 
     ## connect to database system
     def connect(self):
         # config to connect dbms
-        config = {
-            "host": "127.0.0.1",
-            "db": "tpch",
-            # "db": "imdb",
-            "user": "postgres",
-            "passwd": "jw2544"
-        }
+        # config = {
+        #     "host": "127.0.0.1",
+        #     "db": "tpch",
+        #     # "db": "imdb",
+        #     "user": "postgres",
+        #     "passwd": "jw2544"
+        # }
 
-        self.conn = psycopg2.connect("dbname='%s' user='%s'" % (config["db"], config["user"]))
+        self.conn = psycopg2.connect("dbname='%s' user='%s'" % (self.config["db"], self.config["user"]))
         self.conn.autocommit = True
         self.cursor = self.conn.cursor()
         self.index_creation_format = "CREATE INDEX %s ON %s (%s);"
@@ -34,6 +34,21 @@ class PostgresDriver(AbstractDriver):
         self.sys_params = pg_candidate_dbms_parameter
         self.sys_params_type = len(self.sys_params)
         self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
+        self.retrieve_table_name_sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
+        self.cardinality_format = "select count(*) from %s;"
+
+    def cardinalities(self):
+        self.cursor.execute(self.retrieve_table_name_sql)
+        dbms_tables = []
+        cardinality_info = {}
+        for table in self.cursor.fetchall():
+            dbms_tables.append(table)
+        for table in dbms_tables:
+            self.cursor.execute(self.cardinality_format % table)
+            result = self.cursor.fetchone()
+            cardinality = result[0]
+            cardinality_info[table] = cardinality
+        return cardinality_info
 
     def runQueriesWithTimeout(self, query_list, timeout):
         run_time = []
