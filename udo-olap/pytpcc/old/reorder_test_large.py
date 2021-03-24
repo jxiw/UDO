@@ -1,6 +1,6 @@
 from gym_olapgame.envs import index
 
-import order_optimizer
+from old import order_optimizer
 
 # sf 10
 # log = [

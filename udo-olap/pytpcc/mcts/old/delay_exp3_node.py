@@ -119,7 +119,7 @@ class Delay_Exp3_Node:
             if self.children[action_idx] is not None:
                 self.children[action_idx].update_batch(info)
 
-    def best_actions(self):
+    def opt_policy(self):
         best_action_idx = np.argmax(self.probability)
         if self.children[best_action_idx] is not None:
             return [self.actions[best_action_idx]] + self.children[best_action_idx].best_actions()

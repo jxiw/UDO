@@ -1,8 +1,6 @@
 import math
-from typing import Dict, List, Any
 
 import gym
-import gym_olapgame
 from gym_olapgame.envs import index
 
 from mcts import delay_uct_node
@@ -10,7 +8,7 @@ from mcts import uct_node
 import time
 import constants
 import random
-import order_optimizer
+from old import order_optimizer
 import sys
 
 all_queries = list(constants.QUERIES.keys())

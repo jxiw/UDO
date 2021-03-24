@@ -1,16 +1,13 @@
-from typing import Dict, List, Any
+from typing import Dict
 
 import gym
-import gym_olapgame
 from gym_olapgame.envs import index
 
 from mcts import delay_exp3_node
 from mcts import uct_node
 import time
 import constants
-import random
-import itertools
-import order_optimizer
+from old import order_optimizer
 
 all_queries = list(constants.QUERIES.keys())
 nr_query = len(all_queries)
@@ -23,7 +20,7 @@ index_query_info = list(map(lambda x: list(map(lambda y: query_info[y], x[3])), 
 
 print("start:", time.time())
 
-optimizer=order_optimizer.OrderOptimizer(index_card_info)
+optimizer= order_optimizer.OrderOptimizer(index_card_info)
 
 env = gym.make('olapgame-v0')
 
@@ -233,9 +230,9 @@ while t1 < macro_episode:
     # end up the rapid value update
     heavy_root.print()
     print("time for indices:", idx_build_time)
-    print("best heavy action", heavy_root.best_actions())
+    print("best heavy action", heavy_root.opt_policy())
     t1 += delay_time
 
-print("best heavy action", heavy_root.best_actions())
+print("best heavy action", heavy_root.opt_policy())
 
 print("end:", time.time())

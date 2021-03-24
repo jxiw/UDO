@@ -2,7 +2,7 @@ import time
 
 from gym_olapgame.envs import index, parameter
 
-import order_optimizer
+from old import order_optimizer
 from drivers.postgresdriver import PostgresDriver
 
 log = [

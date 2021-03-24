@@ -1,10 +1,7 @@
-from typing import Dict, List, Any
-
 import gym
-import gym_olapgame
 from gym_olapgame.envs import index
 
-import order_optimizer
+from old import order_optimizer
 from mcts import delay_uct_node
 from mcts import uct_node
 import time
