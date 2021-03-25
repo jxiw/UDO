@@ -4,8 +4,8 @@ from drivers.mysqldriver import MysqlDriver
 from drivers.postgresdriver import PostgresDriver
 from sarsa_agent import run_sarsa_agent
 from ddpg_agent import run_ddpg_agent
-from udo_optimizer import run_udo
-from udo_simplifed import run_simplifed_udo_agent
+from udo_agent import run_udo_agent
+from udo_simplifed_agent import run_simplifed_udo_agent
 import index
 import json
 import constants
@@ -25,13 +25,15 @@ udo_parser.add_argument('-queries', default="tpcc_query.sql",
 udo_parser.add_argument('-indices',
                         help='the input query file')
 # tuning time
-udo_parser.add_argument('-duration', default=5,
+udo_parser.add_argument('-duration', default=5, type=int,
                         help='time for tuning in hours')
 # rl algorithm
 udo_parser.add_argument('-agent', default='udo', choices=('udo', 'udo-s', 'ddpg', 'sarsa'),
                         help='reinforcement learning agent')
-udo_parser.add_argument('-horizon', default=5,
+udo_parser.add_argument('-horizon', default=5, type=int,
                         help='the number horizon for reinforcement agent')
+udo_parser.add_argument('-heavy_horizon', default=3, type=int,
+                        help='the number horizon for heavy parameters in UDO')
 # mcts algorithm
 udo_parser.add_argument('-rl_update', choices=('RAVE', 'MCTS'),
                         help='the update policy of UDO tree search')
@@ -40,6 +42,8 @@ udo_parser.add_argument('-rl_select', choices=('UCB1', 'UCBV'),
 udo_parser.add_argument('-rl_reward', choices=('delta', 'accumulate'),
                         help='the reward of reinforcement learning agent')
 udo_parser.add_argument('-rl_delay', choices=('UCB', 'Exp3'),
+                        help='the delay selection policy')
+udo_parser.add_argument('-rl_max_delay_time', type=int,
                         help='the delay selection policy')
 # load json file
 udo_parser.add_argument('--load_json',
@@ -79,16 +83,25 @@ dbms_conf = {
     "passwd": args['password'],
 }
 
+# check the validate of configurations file
+if not args['system'] or not args['db']:
+    print("Please specific a database")
+    exit()
+
+if not args['duration'] or not args['horizon']:
+    print("Wrong parameters. Please check the input parameters")
+    exit()
+
 # create a dbms driver
 if args['system'] == "mysql":
-    driver = MysqlDriver(dbms_conf)
+    constants.driver = MysqlDriver(dbms_conf)
 elif args['system'] == "postgres":
-    driver = PostgresDriver(dbms_conf)
+    constants.driver = PostgresDriver(dbms_conf)
 
 # obtain index cardinality information
-driver.connect()
+constants.driver.connect()
 if not constants.cardinality_info:
-    constants.cardinality_info = driver.cardinalities()
+    constants.cardinality_info = constants.driver.cardinalities()
 
 # obtain index applicable queries
 for i in range(len(index.candidate_indices)):
@@ -109,13 +122,18 @@ for i in range(len(index.candidate_indices)):
 # filter indices which contains at least has one appliable query
 index.candidate_indices = [candidate_index for candidate_index in index.candidate_indices if
                            len(candidate_index[3]) > 0]
-# print(len(index.
-# candidate_indices))
+
+# print(len(index.candidate_indices))
 
 # if the agent is udo
 if args['agent'] == 'udo':
+    if not args['heavy_horizon']:
+        print("Please specific the step of heavy configurations")
+        exit()
     # run udo
-    run_udo_agent(duration=args['duration'], horizon=args['horizon'])
+    horizon = args['horizon']
+    heavy_horizon = args['heavy_horizon']
+    run_udo_agent(duration=args['duration'], heavy_horizon=heavy_horizon, light_horizon=(horizon - heavy_horizon), delay_time=args['rl_max_delay_time'])
 elif args['agent'] == 'udo-s':
     # run simplified udo
     run_simplifed_udo_agent(duration=args['duration'], horizon=args['horizon'])

@@ -24,7 +24,6 @@ class PostgresDriver(AbstractDriver):
         #     "user": "postgres",
         #     "passwd": "jw2544"
         # }
-
         self.conn = psycopg2.connect("dbname='%s' user='%s'" % (self.config["db"], self.config["user"]))
         self.conn.autocommit = True
         self.cursor = self.conn.cursor()

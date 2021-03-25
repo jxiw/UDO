@@ -9,8 +9,10 @@ import constants
 import random
 import order_optimizer
 import sys
+import index
 
-def run_udo_agent(duration, horizon):
+
+def run_udo_agent(duration, heavy_horizon, light_horizon, delay_time=5):
     duration_in_seconds = duration * 3600
 
     all_queries = list(constants.QUERIES.keys())
@@ -27,18 +29,18 @@ def run_udo_agent(duration, horizon):
     env = gym.make('olapgame-v0')
 
     # number of indices equal heavy_tree_height + 1
-    heavy_tree_height = 3
-    light_tree_height = 5
+    heavy_tree_height = heavy_horizon
+    light_tree_height = light_horizon
 
     init_state = env.state_decoder(0)
-    macro_episode = 10000
+    # macro_episode = 10000
     micro_episode = 5
 
     terminate_action = env.index_candidate_num
     light_tree_cache = dict()
 
     # prepare the heavy configurations
-    delay_time = 5
+    # delay_time = 5
 
     global_max_reward = 0
     global_max_action = []
@@ -51,7 +53,8 @@ def run_udo_agent(duration, horizon):
 
     t1 = 1
     start_time = time.time()
-    while t1 < macro_episode:
+    end_episode_time = time.time()
+    while (end_episode_time - start_time) < duration_in_seconds:
         selected_heavy_action_batch = []
         configuration_to_evaluate = []
         # remove_terminate_action_batch = []
@@ -204,8 +207,8 @@ def run_udo_agent(duration, horizon):
         heavy_root.update_batch(update_info_slot)
         previous_set = set(configuration_to_evaluate[evaluated_order[-1]])
         heavy_root.print()
-        current_time = time.time()
-        print("current time:", (current_time - start_time))
+        end_episode_time = time.time()
+        print("current time:", (end_episode_time - start_time))
         print("time for indices:", idx_build_time)
         print("best heavy action", heavy_root.best_actions())
         t1 += delay_time
@@ -214,5 +217,3 @@ def run_udo_agent(duration, horizon):
     print("best heavy action", heavy_root.best_actions())
 
     print("end:", time.time())
-
-

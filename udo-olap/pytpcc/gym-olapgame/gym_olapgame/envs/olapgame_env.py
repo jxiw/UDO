@@ -13,7 +13,6 @@ from drivers.postgresdriver import PostgresDriver
 
 import index
 
-
 class OLAPOptimizationGameEnv(gym.Env):
 
     def check_constraint(self, constraints, prev_unit, next_unit):
@@ -22,12 +21,12 @@ class OLAPOptimizationGameEnv(gym.Env):
                 return False
         return True
 
-    def __init__(self, dbms_connector):
+    def __init__(self):
         # init
         super(OLAPOptimizationGameEnv, self).__init__()
 
         # our transition matrix is a deterministic matrix
-        self.driver = dbms_connector
+        self.driver = constants.driver
 
         # initial index action tuning space
         # total number of indices to consider is 20

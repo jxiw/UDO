@@ -924,14 +924,13 @@ cardinality_info = {
     "SUPPLIER": 10000
 }
 
+driver = None
 # sample rate of queries.
 sample_rate = 1
 
 # reward scale params
 light_reward_scale = 10
 heavy_reward_scale = 10
-
-# default_runtime=[]
 
 
 
