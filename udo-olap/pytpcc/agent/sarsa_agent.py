@@ -1,6 +1,6 @@
 import numpy as np
 import gym
-import gym_olapgame
+import gym_olapoptimization
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Flatten
@@ -10,7 +10,7 @@ from rl.agents import SARSAAgent
 from rl.policy import BoltzmannQPolicy
 
 def run_sarsa_agent(duration, horizon):
-    ENV_NAME = 'olapgame-v0'
+    ENV_NAME = 'olapoptimization-v0'
 
     # Get the environment and extract the number of actions.
     env = gym.make(ENV_NAME)

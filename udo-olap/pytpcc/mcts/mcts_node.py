@@ -17,7 +17,7 @@ class SpaceType(Enum):
     Heavy = 2
     All = 3
 
-class MctsNode(object):
+class mcts_node(object):
 
     def select_action(self):
         """connect to a DBMS"""

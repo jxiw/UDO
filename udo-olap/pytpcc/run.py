@@ -2,10 +2,10 @@ import argparse
 
 from drivers.mysqldriver import MysqlDriver
 from drivers.postgresdriver import PostgresDriver
-from sarsa_agent import run_sarsa_agent
-from ddpg_agent import run_ddpg_agent
-from udo_agent import run_udo_agent
-from udo_simplifed_agent import run_simplifed_udo_agent
+from agent.sarsa_agent import run_sarsa_agent
+from agent.ddpg_agent import run_ddpg_agent
+from agent.udo_agent import run_udo_agent
+from agent.udo_simplifed_agent import run_simplifed_udo_agent
 import index
 import json
 import constants

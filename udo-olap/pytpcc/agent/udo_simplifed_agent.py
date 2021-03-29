@@ -1,16 +1,15 @@
 import random
 
 import gym
-import gym_olapgame
+import gym_olapoptimization
 import time
 
 import constants
 from mcts import uct_node
 
-env = gym.make('olapgame-v0')
-env.reset()
-
 def run_simplifed_udo_agent(duration, horizon):
+    env = gym.make('olapoptimization-v0')
+    env.reset()
     duration_in_seconds = duration * 3600
     init_state = env.state_decoder(0)
     light_root = uct_node.Uct_Node(0, 0, horizon, init_state, env)

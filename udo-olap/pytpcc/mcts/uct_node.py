@@ -1,11 +1,12 @@
 import gym
-import gym_olapgame
+import gym_olapoptimization
 import random
 import math
 
+from .mcts_node import *
 
-class Uct_Node:
-    def __init__(self, round, tree_level, tree_height, state, env):
+class uct_node(mcts_node):
+    def __init__(self, round, tree_level, tree_height, state, env, space_type):
         self.create_in = round
         # construct the transaction space, index space and parameter space
         self.env = env
@@ -23,9 +24,17 @@ class Uct_Node:
         self.total_visit = 0
         self.priority_actions = self.actions.copy()
         self.tree_height = tree_height
+        # update policy
+        self.selection_policy = SelectionPolicy.UCBV
+        self.update_policy = UpdatePolicy.RAVE
+        self.space_type = space_type
+        # tuning parameters for UCB1
+        self.explore_rate = 1.2
+        # tuning parameters for UCBV
         self.bound = 1
         self.const = 1
 
+    # uct selection
     def select_action(self):
         if len(self.priority_actions) > 0:
             selected_action = random.choice(self.priority_actions)
@@ -35,17 +44,21 @@ class Uct_Node:
         else:
             # select actions according to ucb1
             best_action_idx = -1
-            best_quality = -1
+            best_ucb_score = -1
             for action_idx in range(self.nr_action):
-                # print("total visit:%d"%self.total_visit)
-                # print("nr visit:%d"%self.nr_tries[action_idx])
                 mean = self.first_moment[action_idx] / self.nr_tries[action_idx]
                 variance = max((self.second_moment[action_idx] / self.nr_tries[action_idx] - (mean * mean)), 0)
-                ucb_score = mean + math.sqrt(
-                    self.const * variance * math.log(self.total_visit) / self.nr_tries[action_idx]) + (
-                                    3 * self.bound * math.log(self.total_visit) / self.nr_tries[action_idx])
-                if ucb_score > best_quality:
-                    best_quality = ucb_score
+                if self.selection_policy == SelectionPolicy.UCB1:
+                    ucb_score = mean + self.explore_rate * math.sqrt(
+                        math.log(self.total_visit) / self.nr_tries[action_idx])
+                elif self.selection_policy == SelectionPolicy.UCBV:
+                    ucb_score = mean + math.sqrt(
+                        self.const * variance * math.log(self.total_visit) / self.nr_tries[action_idx]) + (
+                                        3 * self.bound * math.log(self.total_visit) / self.nr_tries[action_idx])
+                else:
+                    raise ValueError('Selection policy is unavailable.')
+                if ucb_score > best_ucb_score:
+                    best_ucb_score = ucb_score
                     best_action_idx = action_idx
             return self.actions[best_action_idx], best_action_idx
 
@@ -57,7 +70,13 @@ class Uct_Node:
             current_level_state, current_state_id = self.env.transition(current_level_state,
                                                                         current_level_action)
             # current_candidate_actions = self.env.choose_all_actions(current_level_state)
-            current_candidate_actions = self.env.choose_all_light_actions(current_level_state)
+            if self.space_type == SpaceType.Light:
+                current_candidate_actions = self.env.choose_all_light_actions(current_level_state)
+            elif self.space_type == SpaceType.Right:
+                current_candidate_actions = self.env.choose_all_heavy_actions(current_level_state)
+            elif self.space_type == SpaceType.All:
+                current_candidate_actions = self.env.choose_all_actions(current_level_state)
+            # choose one random action from the action space
             current_level_action = random.choice(current_candidate_actions)
             selected_action_path.append(current_level_action)
         return selected_action_path
@@ -74,7 +93,7 @@ class Uct_Node:
             if can_expand and not self.children[selected_action_idx]:
                 # expend
                 state, state_idx = self.env.transition(self.state, selected_action)
-                self.children[selected_action_idx] = Uct_Node(round, self.tree_level + 1, self.tree_height, state,
+                self.children[selected_action_idx] = UctNode(round, self.tree_level + 1, self.tree_height, state,
                                                               self.env)
             child = self.children[selected_action_idx]
             # recursively sample the tree
@@ -115,7 +134,7 @@ class Uct_Node:
                 mean_reward[i] = self.first_moment[i] / self.nr_tries[i]
             else:
                 mean_reward[i] = 0
-        print("first layer avg reward:", mean_reward)
+        # print("first layer avg reward:", mean_reward)
 
     def best_actions(self):
         best_mean = 0

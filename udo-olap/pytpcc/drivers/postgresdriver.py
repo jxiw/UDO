@@ -49,7 +49,7 @@ class PostgresDriver(AbstractDriver):
             cardinality_info[table] = cardinality
         return cardinality_info
 
-    def runQueriesWithTimeout(self, query_list, timeout):
+    def run_queries_with_timeout(self, query_list, timeout):
         run_time = []
         for query_sql, current_timeout in zip(query_list, timeout):
             try:
@@ -69,10 +69,10 @@ class PostgresDriver(AbstractDriver):
         print(run_time)
         return run_time
 
-    def runQueriesWithoutTimeout(self, query_list):
-        return self.runQueriesWithTimeout(query_list, [0 for query in query_list])
+    def run_queries_without_timeout(self, query_list):
+        return self.run_queries_with_timeout(query_list, [0 for query in query_list])
 
-    def buildIndex(self, index_to_create):
+    def build_index(self, index_to_create):
         """build index"""
         index_sql = self.index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2])
         logging.debug("create index %s", index_sql)
@@ -83,27 +83,27 @@ class PostgresDriver(AbstractDriver):
             self.cursor.execute(cluster_indices_format % (index_to_create[0], index_to_create[1]))
         # self.conn.commit()
 
-    def dropIndex(self, index_to_drop):
+    def drop_index(self, index_to_drop):
         """drop index"""
         index_sql = self.index_drop_format % (index_to_drop[0])
         logging.debug("drop index %s", index_sql)
         self.cursor.execute(index_sql)
         # self.conn.commit()
 
-    def setSystemParameter(self, parameter_sql):
+    def set_system_parameter(self, parameter_sql):
         """parameter change"""
         logging.debug("change system parameter %s" % parameter_sql)
         self.cursor.execute(parameter_sql)
         # self.conn.commit()
 
-    def changeSystemParameter(self, parameter_choices):
+    def change_system_parameter(self, parameter_choices):
         for i in range(self.sys_params_type):
             parameter_choice = int(parameter_choices[i])
             parameter_change_sql = self.sys_params[i][parameter_choice]
             print(parameter_change_sql)
-            self.setSystemParameter(parameter_change_sql)
+            self.set_system_parameter(parameter_change_sql)
 
-    def getSystemParameterSpace(self):
+    def get_system_parameter_space(self):
         return self.sys_params_space
 
 ## CLASS

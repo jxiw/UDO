@@ -13,7 +13,7 @@ from drivers.postgresdriver import PostgresDriver
 
 import index
 
-class OLAPOptimizationGameEnv(gym.Env):
+class OLAPOptimizationEnv(gym.Env):
 
     def check_constraint(self, constraints, prev_unit, next_unit):
         for constraint in constraints:
@@ -23,7 +23,7 @@ class OLAPOptimizationGameEnv(gym.Env):
 
     def __init__(self):
         # init
-        super(OLAPOptimizationGameEnv, self).__init__()
+        super(OLAPOptimizationEnv, self).__init__()
 
         # our transition matrix is a deterministic matrix
         self.driver = constants.driver
@@ -33,7 +33,7 @@ class OLAPOptimizationGameEnv(gym.Env):
         self.index_candidate_num = len(index.candidate_indices)
 
         # initial system parameter space
-        self.parameter_candidate = self.driver.getSystemParameterSpace()
+        self.parameter_candidate = self.driver.get_system_parameter_space()
         self.parameter_candidate_num = len(self.parameter_candidate)
 
         # combine the actions from 2 sub actions
@@ -75,7 +75,7 @@ class OLAPOptimizationGameEnv(gym.Env):
             map(lambda x: list(map(lambda y: query_to_id[y], x[3])), index.candidate_indices))
 
         # the default run time
-        self.default_default_runtime = self.driver.runQueriesWithoutTimeout(list(self.queries.values()))
+        self.default_runtime = self.driver.run_queries_without_timeout(list(self.queries.values()))
 
     # map a number to a state
     def state_decoder(self, num):
@@ -185,9 +185,9 @@ class OLAPOptimizationGameEnv(gym.Env):
         index_current_state = state[:self.index_candidate_num]
         parameter_current_state = state[self.index_candidate_num:]
         # change system parameter
-        self.driver.changeSystemParameter(parameter_current_state)
+        self.driver.change_system_parameter(parameter_current_state)
         # invoke queries
-        run_time = self.driver.runQueriesWithTimeout(queries, timeout)
+        run_time = self.driver.run_queries_with_timeout(queries, timeout)
         print("evaluate time:", sum(run_time))
         return run_time
 
@@ -199,13 +199,13 @@ class OLAPOptimizationGameEnv(gym.Env):
             # build index action
             print("create index")
             print(index_to_create)
-            self.driver.buildIndex(index_to_create)
+            self.driver.build_index(index_to_create)
         for remove_action in remove_actions:
             index_to_drop = index.candidate_indices[remove_action]
             # drop index action
             print("drop index")
             print(index_to_drop)
-            self.driver.dropIndex(index_to_drop)
+            self.driver.drop_index(index_to_drop)
 
     def index_add_step(self, add_action):
         # add action
@@ -213,7 +213,7 @@ class OLAPOptimizationGameEnv(gym.Env):
         # build index action
         print("create index")
         print(index_to_create)
-        self.driver.buildIndex(index_to_create)
+        self.driver.build_index(index_to_create)
 
     def index_drop_step(self, remove_actions):
         # drop actions
@@ -222,7 +222,7 @@ class OLAPOptimizationGameEnv(gym.Env):
             # drop index action
             print("drop index")
             print(index_to_drop)
-            self.driver.dropIndex(index_to_drop)
+            self.driver.drop_index(index_to_drop)
 
     def step(self, action):
         state = self.current_state
@@ -251,7 +251,7 @@ class OLAPOptimizationGameEnv(gym.Env):
                     break
                 parameter_value = parameter_value + parameter_range
             parameter_current_state[parameter_type] = parameter_value
-            self.driver.changeSystemParameter(parameter_current_state)
+            self.driver.change_system_parameter(parameter_current_state)
 
         # heavy actions
         active_indices = [index_pos for index_pos in range(self.nA_index) if index_current_state[index_pos] == 1]
@@ -266,8 +266,8 @@ class OLAPOptimizationGameEnv(gym.Env):
         sample_queries = random.sample(list(query_to_consider), k=sample_num)
 
         # invoke queries
-        run_time = self.driver.runQueriesWithTimeout([self.queries[sample_query] for sample_query in sample_queries],
-                                                     self.default_default_runtime)
+        run_time = self.driver.run_queries_with_timeout([self.queries[sample_query] for sample_query in sample_queries],
+                                                        self.default_runtime)
         print("run time:", run_time)
         print("index time:", self.accumulated_index_time)
         print("evaluate time:", sum(run_time))
@@ -277,7 +277,7 @@ class OLAPOptimizationGameEnv(gym.Env):
         print("next state:", next_state)
 
         # scale the reward
-        reward = sum(self.default_default_runtime) / sum(run_time)
+        reward = sum(self.default_runtime) / sum(run_time)
         current_time = time.time()
         print("current time:", (current_time - self.start_time))
 
@@ -298,9 +298,9 @@ class OLAPOptimizationGameEnv(gym.Env):
             for i in range(self.index_candidate_num):
                 if index_current_state[i] == 1:
                     index_drop_sql = index.candidate_indices[i]
-                    self.driver.dropIndex(index_drop_sql)
+                    self.driver.drop_index(index_drop_sql)
             # set the parameter to default value, the first value
-            self.driver.changeSystemParameter(np.zeros(self.parameter_candidate_num))
+            self.driver.change_system_parameter(np.zeros(self.parameter_candidate_num))
         self.current_state = np.concatenate(
             [np.zeros(self.index_candidate_num), np.zeros(self.parameter_candidate_num)])
         return self.current_state

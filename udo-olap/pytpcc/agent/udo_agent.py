@@ -1,15 +1,14 @@
 import math
+import random
+import sys
+import time
 
 import gym
 
-from mcts import delay_uct_node
-from mcts import uct_node
-import time
 import constants
-import random
-import order_optimizer
-import sys
 import index
+from mcts import uct_node
+from optimizer import order_optimizer
 
 
 def run_udo_agent(duration, heavy_horizon, light_horizon, delay_time=5):
@@ -26,7 +25,7 @@ def run_udo_agent(duration, heavy_horizon, light_horizon, delay_time=5):
     print("start:", time.time())
 
     optimizer = order_optimizer.OrderOptimizer(index_card_info)
-    env = gym.make('olapgame-v0')
+    env = gym.make('olapoptimization-v0')
 
     # number of indices equal heavy_tree_height + 1
     heavy_tree_height = heavy_horizon
@@ -46,9 +45,9 @@ def run_udo_agent(duration, heavy_horizon, light_horizon, delay_time=5):
     global_max_action = []
 
     env.reset()
-    constants.default_runtime = env.evaluate_light(all_queries, [0] * len(all_queries))
+    default_runtime = env.default_default_runtime
 
-    heavy_root = delay_uct_node.Delay_Uct_Node(0, 0, heavy_tree_height, terminate_action, init_state, env)
+    heavy_root = uct_node(0, 0, heavy_tree_height, terminate_action, init_state, env)
     idx_build_time = 0
 
     t1 = 1
@@ -129,17 +128,17 @@ def run_udo_agent(duration, heavy_horizon, light_horizon, delay_time=5):
                 # obtain run time info by running queries within timeout
                 run_time = env.evaluate_light(
                     [all_queries[select_query] for select_query in sampled_query_list],
-                    [constants.default_runtime[select_query] for select_query in sampled_query_list])
+                    [default_runtime[select_query] for select_query in sampled_query_list])
                 # the total time of sampled queries
                 total_run_time = sum(run_time)
                 # the default time of sampled queries
-                default_time = sum(constants.default_runtime[select_query] for select_query in sampled_query_list)
+                default_time = sum(default_runtime[select_query] for select_query in sampled_query_list)
                 # the relative ration of the improvement, the less of total_run_time, the better
                 light_reward = default_time / total_run_time
                 print("light_action:", selected_light_actions)
                 print("light_reward:", light_reward)
 
-                other_default_time = sum(constants.default_runtime[select_query] for select_query in range(nr_query) if
+                other_default_time = sum(default_runtime[select_query] for select_query in range(nr_query) if
                                          select_query not in sampled_query_list)
                 print("estimate whole workload time:", (other_default_time + total_run_time))
 
@@ -192,8 +191,8 @@ def run_udo_agent(duration, heavy_horizon, light_horizon, delay_time=5):
                     # get the query to consider
                     delta_improvement = 0
                     for query in query_to_consider_new:
-                        previous_runtime = constants.default_runtime[query]
-                        current_runtime = constants.default_runtime[query]
+                        previous_runtime = default_runtime[query]
+                        current_runtime = default_runtime[query]
                         if query in current_performance:
                             current_runtime = current_performance[query]
                         if query in previous_performance:
