@@ -118,7 +118,6 @@ for i in range(len(index.candidate_indices)):
         if "where" in query_str:
             where_clause = query_str[query_str.index("where"):].lower()
         else:
-            print(query_str)
             where_clause = query_str.lower()
         contain_columns = index.candidate_indices[i][2].lower().split(",")
         if all(contain_column in where_clause for contain_column in contain_columns):

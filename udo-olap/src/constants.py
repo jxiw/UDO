@@ -534,7 +534,8 @@
 #             )
 #         limit 1;
 #     ''',
-#     "q20": '''select
+#     "q20": '''
+#           select
 #                 s_name,
 #                 s_address
 #             from
@@ -577,7 +578,8 @@
 #                 and n_name = 'ARGENTINA'
 #             order by
 #                 s_name
-#             limit 1;''',
+#             limit 1;
+#             ''',
 #     "q21": '''
 #         select
 #             s_name,

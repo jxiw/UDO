@@ -35,6 +35,7 @@ class OLAPOptimizationEnv(gym.Env):
         # initial system parameter space
         self.parameter_candidate = self.driver.get_system_parameter_space()
         self.parameter_candidate_num = len(self.parameter_candidate)
+        print(self.parameter_candidate_num)
 
         # combine the actions from 2 sub actions
         # action space
@@ -71,7 +72,8 @@ class OLAPOptimizationEnv(gym.Env):
         self.queries = constants.QUERIES
         self.query_ids = list(constants.QUERIES.keys())
         self.nr_query = len(self.queries)
-        query_to_id = {self.queries[self.query_ids[idx]]: idx for idx in range(self.nr_query)}
+        query_to_id = {self.query_ids[idx]: idx for idx in range(self.nr_query)}
+        print("query_to_id:", query_to_id)
         self.index_to_applicable_queries = list(
             map(lambda x: list(map(lambda y: query_to_id[y], x[3])), index.candidate_indices))
 
@@ -114,6 +116,9 @@ class OLAPOptimizationEnv(gym.Env):
     # available light actions for a state
     def choose_all_light_actions(self, state):
         # only allow to change the non-changed parameter
+        print("index_candidate_nums:", self.index_candidate_num)
+        print("parameter_candidate:", self.parameter_candidate)
+        print(state)
         parameter_state = state[self.index_candidate_num:]
         candidate_parameter_action = []
         parameter_sum = 0
@@ -122,6 +127,8 @@ class OLAPOptimizationEnv(gym.Env):
                 for j in range(1, self.parameter_candidate[i]):
                     candidate_parameter_action.append(self.nA_index + parameter_sum + j)
             parameter_sum += self.parameter_candidate[i]
+            print(parameter_state)
+        print(parameter_state)
         # we only consider the change of parameter
         all_light_actions = candidate_parameter_action
         return all_light_actions
