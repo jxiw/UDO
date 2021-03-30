@@ -1,0 +1,11 @@
+{
+  "system": "postgres",
+  "db": "tpcc",
+  "username": "postgres",
+  "queries": "tpch_queries",
+  "indices": "index.txt",
+  "duration": 5,
+  "agent": "udo-s",
+  "horizon": 10,
+  "heavy-horizon": 5
+}
