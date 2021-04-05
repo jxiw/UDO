@@ -14,7 +14,7 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, duration, horizo
     init_state = env.state_decoder(0)
     light_root = uct_node(0, 0, horizon, init_state, env, space_type=SpaceType.All)
 
-    all_queries = list(constants.QUERIES.keys())
+    all_queries = list(queries.keys())
     start_time = time.time()
     current_time = time.time()
 
