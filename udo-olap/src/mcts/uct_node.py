@@ -72,7 +72,7 @@ class uct_node(mcts_node):
             # current_candidate_actions = self.env.choose_all_actions(current_level_state)
             if self.space_type == SpaceType.Light:
                 current_candidate_actions = self.env.choose_all_light_actions(current_level_state)
-            elif self.space_type == SpaceType.Right:
+            elif self.space_type == SpaceType.Heavy:
                 current_candidate_actions = self.env.choose_all_heavy_actions(current_level_state)
             elif self.space_type == SpaceType.All:
                 current_candidate_actions = self.env.choose_all_actions(current_level_state)

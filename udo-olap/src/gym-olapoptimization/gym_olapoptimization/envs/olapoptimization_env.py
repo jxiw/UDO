@@ -116,10 +116,11 @@ class OLAPOptimizationEnv(gym.Env):
     # available light actions for a state
     def choose_all_light_actions(self, state):
         # only allow to change the non-changed parameter
-        print("index_candidate_nums:", self.index_candidate_num)
-        print("parameter_candidate:", self.parameter_candidate)
-        print(state)
+        # print("index_candidate_nums:", self.index_candidate_num)
+        # print("parameter_candidate_num:", self.parameter_candidate_num)
+        # print("parameter_candidate:", self.parameter_candidate)
         parameter_state = state[self.index_candidate_num:]
+        # print("parameter_state:", parameter_state)
         candidate_parameter_action = []
         parameter_sum = 0
         for i in range(len(parameter_state)):
@@ -186,7 +187,7 @@ class OLAPOptimizationEnv(gym.Env):
         return next_state
 
     # evaluate the current state
-    def evaluate_light(self, queries, timeout):
+    def evaluate_light(self, queries):
         state = self.current_state
         # print("current state:")
         # print(state)
@@ -195,7 +196,7 @@ class OLAPOptimizationEnv(gym.Env):
         # change system parameter
         self.driver.change_system_parameter(parameter_current_state)
         # invoke queries
-        run_time = self.driver.run_queries_with_timeout(queries, timeout)
+        run_time = self.driver.run_queries_with_timeout(queries, self.default_runtime)
         print("evaluate time:", sum(run_time))
         return run_time
 

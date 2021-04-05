@@ -32,11 +32,11 @@ def run_simplifed_udo_agent(duration, horizon):
             # move to next state
             state = env.step_without_evaluation(selected_light_action)
         # obtain run time info by running queries within timeout
-        run_time = env.evaluate_light(all_queries, constants.default_runtime)
+        run_time = env.evaluate_light(all_queries)
         # the total time of sampled queries
         total_run_time = sum(run_time)
         # the default time of sampled queries
-        default_time = sum(constants.default_runtime)
+        default_time = sum(env.default_runtime)
         # the relative ration of the improvement, the less of total_run_time, the better
         # light_reward = default_time / total_run_time
         light_reward = max(default_time - total_run_time, 0)
