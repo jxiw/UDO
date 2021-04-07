@@ -1,0 +1,8 @@
+numpy==1.19.5
+testresources==2.0.1
+gym==0.17.3
+tensorflow==2.4.1
+keras==2.4.3
+keras-rl==0.4.2
+mysqlclient==2.0.3
+psycopg2==2.8.6
