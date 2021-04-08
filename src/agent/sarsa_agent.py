@@ -46,7 +46,7 @@ def run_sarsa_agent(driver, queries, candidate_indices, duration, horizon):
     sarsa.fit(env, nb_steps=500, visualize=False, verbose=2)
 
     # After training is done, we save the final weights.
-    sarsa.save_weights('sarsa_{}_weights.h5f'.format(ENV_NAME), overwrite=True)
+    # sarsa.save_weights('sarsa_{}_weights.h5f'.format(udo_optimization-v0), overwrite=True)
 
     # Finally, evaluate our algorithm for 5 episodes.
     sarsa.test(env, nb_episodes=5, visualize=True)

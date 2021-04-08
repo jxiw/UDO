@@ -119,8 +119,8 @@ class OptimizationEnv(gym.Env):
                 for j in range(1, self.parameter_candidate[i]):
                     candidate_parameter_action.append(self.nA_index + parameter_sum + j)
             parameter_sum += self.parameter_candidate[i]
-            print(parameter_state)
-        print(parameter_state)
+            # print(parameter_state)
+        # print(parameter_state)
         # we only consider the change of parameter
         all_light_actions = candidate_parameter_action
         return all_light_actions
@@ -259,6 +259,9 @@ class OptimizationEnv(gym.Env):
             [applicable_query for applicable_queries in
              list(map(lambda x: self.index_to_applicable_queries[x], active_indices)) for applicable_query in
              applicable_queries])
+
+        if len(query_to_consider) == 0:
+            query_to_consider = range(self.nr_query)
 
         # obtain sample number
         sample_rate = 1

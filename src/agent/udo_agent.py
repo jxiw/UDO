@@ -45,9 +45,9 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
     global_max_action = []
 
     env.reset()
-    default_runtime = env.default_default_runtime
+    default_runtime = env.default_runtime
 
-    heavy_root = uct_node(0, 0, heavy_tree_height, terminate_action, init_state, env, space_type=SpaceType.Heavy)
+    heavy_root = uct_node(round=0, tree_level=0, tree_height=heavy_tree_height, state=init_state, env=env, space_type=SpaceType.Heavy)
     idx_build_time = 0
 
     t1 = 1
