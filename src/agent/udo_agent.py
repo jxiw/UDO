@@ -24,7 +24,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
     print("start:", time.time())
 
     optimizer = order_optimizer.OrderOptimizer(index_card_info)
-    env = gym.make('udo_optimization-v0', driver, queries, candidate_indices)
+    env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices)
 
     # number of indices equal heavy_tree_height + 1
     heavy_tree_height = heavy_horizon

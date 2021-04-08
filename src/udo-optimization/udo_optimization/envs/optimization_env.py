@@ -267,7 +267,7 @@ class OptimizationEnv(gym.Env):
         sample_queries = random.sample(list(query_to_consider), k=sample_num)
 
         # invoke queries
-        run_time = self.driver.run_queries_with_timeout([self.queries[sample_query] for sample_query in sample_queries],
+        run_time = self.driver.run_queries_with_timeout([self.queries[self.query_ids[sample_query]] for sample_query in sample_queries],
                                                         self.default_runtime)
         print("run time:", run_time)
         print("index time:", self.accumulated_index_time)

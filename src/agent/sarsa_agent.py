@@ -10,12 +10,9 @@ from rl.agents import SARSAAgent
 from rl.policy import BoltzmannQPolicy
 
 def run_sarsa_agent(driver, queries, candidate_indices, duration, horizon):
-    ENV_NAME = 'udo_optimization-v0'
 
     # Get the environment and extract the number of actions.
-    env = gym.make(ENV_NAME, driver, queries, candidate_indices)
-    # np.random.seed(123)
-    # env.seed(123)
+    env = gym.make("udo_optimization-v0", driver=driver, queries=queries, candidate_indices=candidate_indices)
     env.horizon = horizon
     nb_actions = env.action_space.n
     print("nr action:", nb_actions)

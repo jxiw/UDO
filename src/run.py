@@ -1,6 +1,8 @@
 import argparse
 import json
 import os
+import random
+import numpy as np
 
 from agent.ddpg_agent import run_ddpg_agent
 from agent.sarsa_agent import run_sarsa_agent
@@ -120,13 +122,17 @@ for i in range(len(candidate_indices)):
         if all(contain_column in where_clause for contain_column in contain_columns):
             # if any(contain_column in where_clause for contain_column in contain_columns):
             contain_query.append(query_id)
-    index_cardinality = cardinality_info[candidate_indices[i][1]]
+    index_cardinality = cardinality_info[candidate_indices[i][1].lower()]
     candidate_indices[i] += (contain_query, index_cardinality,)
 
 # filter indices which contains at least has one appliable query
 candidate_indices = [candidate_index for candidate_index in candidate_indices if len(candidate_index[3]) > 0]
 
 # print(len(index.candidate_indices))
+
+# fix the random seed
+random.seed(123)
+np.random.seed(123)
 
 # if the agent is udo
 if args['agent'] == 'udo':

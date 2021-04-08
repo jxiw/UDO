@@ -11,7 +11,7 @@ from tensorflow.keras import layers
 
 # run ddpg agent with horizon and duration time
 def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
-    env = gym.make("udo_optimization-v0", driver, queries, candidate_indices)
+    env = gym.make("udo_optimization-v0", driver=driver, queries=queries, candidate_indices=candidate_indices)
 
     num_states = env.observation_space.shape[0]
     print("Size of State Space ->  {}".format(num_states))

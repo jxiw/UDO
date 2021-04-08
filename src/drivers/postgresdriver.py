@@ -39,7 +39,7 @@ class PostgresDriver(AbstractDriver):
             self.cursor.execute(self.cardinality_format % table)
             result = self.cursor.fetchone()
             cardinality = result[0]
-            cardinality_info[table] = cardinality
+            cardinality_info[table[0].lower()] = cardinality
         return cardinality_info
 
     def run_queries_with_timeout(self, query_list, timeout):

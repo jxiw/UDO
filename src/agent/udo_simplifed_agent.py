@@ -8,7 +8,7 @@ from mcts.mcts_node import SpaceType
 from mcts.uct_node import uct_node
 
 def run_simplifed_udo_agent(driver, queries, candidate_indices, duration, horizon):
-    env = gym.make('udo_optimization-v0', driver, queries, candidate_indices)
+    env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices)
     env.reset()
     duration_in_seconds = duration * 3600
     init_state = env.state_decoder(0)
