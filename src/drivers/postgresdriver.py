@@ -3,7 +3,6 @@ from __future__ import with_statement
 import logging
 import psycopg2
 import time
-from .postgressysparams import pg_candidate_dbms_parameter
 
 from psycopg2._psycopg import QueryCanceledError
 from .abstractdriver import *
@@ -11,8 +10,8 @@ from .abstractdriver import *
 # the DBMS connector for Postgres
 class PostgresDriver(AbstractDriver):
 
-    def __init__(self, conf):
-        super(PostgresDriver, self).__init__("postgres", conf)
+    def __init__(self, conf, sys_params):
+        super(PostgresDriver, self).__init__("postgres", conf, sys_params)
 
     ## connect to database system
     def connect(self):
@@ -23,7 +22,6 @@ class PostgresDriver(AbstractDriver):
         self.index_creation_format = "CREATE INDEX %s ON %s (%s);"
         self.index_drop_format = "drop index %s;"
         self.is_cluster = True
-        self.sys_params = pg_candidate_dbms_parameter
         self.sys_params_type = len(self.sys_params)
         self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
         self.retrieve_table_name_sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
@@ -53,7 +51,7 @@ class PostgresDriver(AbstractDriver):
                 finish_time = time.time()
                 duration = finish_time - start_time
             except QueryCanceledError:
-                print("timeout")
+                # print("timeout")
                 duration = current_timeout
             run_time.append(duration)
         # reset the timeout to the default configuration

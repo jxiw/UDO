@@ -25,6 +25,8 @@ udo_parser.add_argument('-queries', default="tpch_query.sql",
                         help='the input query file')
 udo_parser.add_argument('-indices',
                         help='the input query file')
+udo_parser.add_argument('-sys_params',
+                        help='the input system params json file')
 # tuning time
 udo_parser.add_argument('-duration', default=5, type=int,
                         help='time for tuning in hours')
@@ -99,11 +101,18 @@ if not args['duration'] or not args['horizon']:
     print("Wrong parameters. Please check the input parameters")
     exit()
 
+if not args['sys_params']:
+    print("Please specify the system parameters")
+    exit()
+
+with open(args['sys_params'], 'rt') as f:
+    sys_params = json.load(f)
+
 # create a dbms driver
 if args['system'] == "mysql":
-    driver = MysqlDriver(dbms_conf)
+    driver = MysqlDriver(dbms_conf, sys_params)
 elif args['system'] == "postgres":
-    driver = PostgresDriver(dbms_conf)
+    driver = PostgresDriver(dbms_conf, sys_params)
 
 # obtain index cardinality information
 driver.connect()

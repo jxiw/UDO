@@ -3,15 +3,14 @@ from __future__ import with_statement
 import logging
 import MySQLdb
 import time
-from .mysqlsysparams import mysql_candidate_dbms_parameter
 
 from .abstractdriver import *
 
 # the DBMS connector for MySQL
 class MysqlDriver(AbstractDriver):
 
-    def __init__(self, conf):
-        super(MysqlDriver, self).__init__("mysql", conf)
+    def __init__(self, conf, sys_params):
+        super(MysqlDriver, self).__init__("mysql", conf, sys_params)
 
     ## connect to database system
     def connect(self):
@@ -21,7 +20,7 @@ class MysqlDriver(AbstractDriver):
         self.index_creation_format = "CREATE INDEX %s ON %s (%s) USING BTREE;"
         self.index_drop_format = "ALTER TABLE %s drop index %s;"
         self.is_cluster = True
-        self.sys_params = mysql_candidate_dbms_parameter
+        self.sys_params_type = len(self.sys_params)
         self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
         self.retrieve_table_name_sql = "show tables;"
         self.cardinality_format = "select count(*) from %s;"
@@ -51,8 +50,8 @@ class MysqlDriver(AbstractDriver):
                 duration = finish_time - start_time
                 print("query run:%s" % duration)
             except MySQLdb.OperationalError as oe:
-                print(oe)
-                print("timeout")
+                # print(oe)
+                # print("timeout")
                 duration = current_timeout
             run_time.append(duration)
         print(run_time)

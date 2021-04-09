@@ -12,19 +12,18 @@ from optimizer import order_optimizer
 
 def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, light_horizon, delay_time=5):
     duration_in_seconds = duration * 3600
+    env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices)
 
-    all_queries = list(queries)
-    nr_query = len(all_queries)
+    nr_query = len(queries) # number of queries
+    query_ids = env.query_ids # queries names
+    query_to_id = {query_ids[idx]: idx for idx in range(nr_query)} # query number to query name
 
-    # print(all_queries)
-    query_info = {all_queries[idx]: idx for idx in range(nr_query)}
     index_card_info = list(map(lambda x: x[4], candidate_indices))
-    index_query_info = list(map(lambda x: list(map(lambda y: query_info[y], x[3])), candidate_indices))
+    index_to_applicable_queries = env.index_to_applicable_queries
 
     print("start:", time.time())
 
     optimizer = order_optimizer.OrderOptimizer(index_card_info)
-    env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices)
 
     # number of indices equal heavy_tree_height + 1
     heavy_tree_height = heavy_horizon
@@ -57,6 +56,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
         selected_heavy_action_batch = []
         configuration_to_evaluate = []
         # remove_terminate_action_batch = []
+        print("delay_time:", delay_time)
         for d in range(delay_time):
             selected_heavy_actions = heavy_root.sample(t1 + d)
             selected_heavy_action_batch.append(selected_heavy_actions)
@@ -100,14 +100,14 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             if selected_heavy_action_frozen in light_tree_cache:
                 light_root = light_tree_cache[selected_heavy_action_frozen]
             else:
-                light_root = uct_node(0, 0, light_tree_height, init_state, env)
+                light_root = uct_node(round=0, tree_level=0, tree_height=light_tree_height, state=init_state, env=env, space_type=SpaceType.Light)
                 light_tree_cache[selected_heavy_action_frozen] = light_root
             # for the light tree
             best_reward = 0
             # query to consider for the current select heavy configuration
             query_to_consider = set(
                 [applicable_query for applicable_queries in
-                 list(map(lambda x: index_query_info[x], selected_heavy_action_frozen)) for applicable_query in
+                 list(map(lambda x: index_to_applicable_queries[x], selected_heavy_action_frozen)) for applicable_query in
                  applicable_queries])
             print("query to consider:", query_to_consider)
             # best performance of the sampled each query
@@ -126,9 +126,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                 sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
                 print("sampled_query_list:", sampled_query_list)
                 # obtain run time info by running queries within timeout
-                run_time = env.evaluate_light(
-                    [all_queries[select_query] for select_query in sampled_query_list],
-                    [default_runtime[select_query] for select_query in sampled_query_list])
+                run_time = env.evaluate_light([queries[query_ids[select_query]] for select_query in sampled_query_list])
                 # the total time of sampled queries
                 total_run_time = sum(run_time)
                 # the default time of sampled queries
@@ -187,7 +185,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                     current_performance = macro_performance_info[selected_heavy_action_frozen]
                     # generate reward based on the difference between previous performance and current performance
                     # the query for current indices
-                    query_to_consider_new = index_query_info[selected_heavy_actions[i]]
+                    query_to_consider_new = index_to_applicable_queries[selected_heavy_actions[i]]
                     # get the query to consider
                     delta_improvement = 0
                     for query in query_to_consider_new:

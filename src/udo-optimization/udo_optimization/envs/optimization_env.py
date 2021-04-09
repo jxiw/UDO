@@ -6,6 +6,7 @@ import gym
 import numpy as np
 from gym import spaces
 
+
 # from drivers.mysqldriver import MysqlDriver
 # from drivers.postgresdriver import PostgresDriver
 
@@ -70,6 +71,7 @@ class OptimizationEnv(gym.Env):
 
         # the default run time
         self.default_runtime = self.driver.run_queries_without_timeout(list(self.queries.values()))
+        self.runtime_out = [1.2 * query_runtime for query_runtime in self.default_runtime]
 
     # map a number to a state
     def state_decoder(self, num):
@@ -119,8 +121,6 @@ class OptimizationEnv(gym.Env):
                 for j in range(1, self.parameter_candidate[i]):
                     candidate_parameter_action.append(self.nA_index + parameter_sum + j)
             parameter_sum += self.parameter_candidate[i]
-            # print(parameter_state)
-        # print(parameter_state)
         # we only consider the change of parameter
         all_light_actions = candidate_parameter_action
         return all_light_actions
@@ -187,7 +187,7 @@ class OptimizationEnv(gym.Env):
         # change system parameter
         self.driver.change_system_parameter(parameter_current_state)
         # invoke queries
-        run_time = self.driver.run_queries_with_timeout(queries, self.default_runtime)
+        run_time = self.driver.run_queries_with_timeout(queries, self.runtime_out)
         print("evaluate time:", sum(run_time))
         return run_time
 
@@ -270,8 +270,9 @@ class OptimizationEnv(gym.Env):
         sample_queries = random.sample(list(query_to_consider), k=sample_num)
 
         # invoke queries
-        run_time = self.driver.run_queries_with_timeout([self.queries[self.query_ids[sample_query]] for sample_query in sample_queries],
-                                                        self.default_runtime)
+        run_time = self.driver.run_queries_with_timeout(
+            [self.queries[self.query_ids[sample_query]] for sample_query in sample_queries],
+            self.runtime_out)
         print("run time:", run_time)
         print("index time:", self.accumulated_index_time)
         print("evaluate time:", sum(run_time))
