@@ -21,6 +21,7 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, duration, horizo
     # micro_episode = 100000
     # for t2 in range(micro_episode):
     ep = 0
+    print("start:", time.time())
     while (current_time - start_time) < duration_in_seconds:
         # for the micro episode
         selected_light_actions = light_root.sample(ep)
@@ -40,7 +41,7 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, duration, horizo
         # light_reward = default_time / total_run_time
         light_reward = max(default_time - total_run_time, 0)
         print("light reward:", light_reward)
-        light_root.update_statistics(light_reward, selected_light_actions)
+        light_root.update_statistics_with_mcts_reward(light_reward, selected_light_actions)
         light_root.print()
         current_best = light_root.best_actions()
         print("current best action:", current_best)
@@ -48,3 +49,4 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, duration, horizo
         print("runtime:", total_run_time)
         # add more episode
         ep += 1
+    print("end:", time.time())

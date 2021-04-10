@@ -4,19 +4,19 @@ import sys
 import time
 
 import gym
-import udo_optimization
 
 from mcts.mcts_node import SpaceType
 from mcts.uct_node import uct_node
 from optimizer import order_optimizer
 
+
 def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, light_horizon, delay_time=5):
     duration_in_seconds = duration * 3600
     env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices)
 
-    nr_query = len(queries) # number of queries
-    query_ids = env.query_ids # queries names
-    query_to_id = {query_ids[idx]: idx for idx in range(nr_query)} # query number to query name
+    nr_query = len(queries)  # number of queries
+    query_ids = env.query_ids  # queries names
+    query_to_id = {query_ids[idx]: idx for idx in range(nr_query)}  # query number to query name
 
     index_card_info = list(map(lambda x: x[4], candidate_indices))
     index_to_applicable_queries = env.index_to_applicable_queries
@@ -46,9 +46,11 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
     env.reset()
     default_runtime = env.default_runtime
 
-    heavy_root = uct_node(round=0, tree_level=0, tree_height=heavy_tree_height, state=init_state, env=env, space_type=SpaceType.Heavy)
+    heavy_root = uct_node(round=0, tree_level=0, tree_height=heavy_tree_height, state=init_state, env=env,
+                          space_type=SpaceType.Heavy)
     idx_build_time = 0
-
+    best_simulation_time = sum(default_runtime)
+    best_configs = {}
     t1 = 1
     start_time = time.time()
     end_episode_time = time.time()
@@ -100,14 +102,16 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             if selected_heavy_action_frozen in light_tree_cache:
                 light_root = light_tree_cache[selected_heavy_action_frozen]
             else:
-                light_root = uct_node(round=0, tree_level=0, tree_height=light_tree_height, state=init_state, env=env, space_type=SpaceType.Light)
+                light_root = uct_node(round=0, tree_level=0, tree_height=light_tree_height, state=init_state, env=env,
+                                      space_type=SpaceType.Light)
                 light_tree_cache[selected_heavy_action_frozen] = light_root
             # for the light tree
             best_reward = 0
             # query to consider for the current select heavy configuration
             query_to_consider = set(
                 [applicable_query for applicable_queries in
-                 list(map(lambda x: index_to_applicable_queries[x], selected_heavy_action_frozen)) for applicable_query in
+                 list(map(lambda x: index_to_applicable_queries[x], selected_heavy_action_frozen)) for applicable_query
+                 in
                  applicable_queries])
             print("query to consider:", query_to_consider)
             # best performance of the sampled each query
@@ -138,13 +142,17 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
 
                 other_default_time = sum(default_runtime[select_query] for select_query in range(nr_query) if
                                          select_query not in sampled_query_list)
-                print("estimate whole workload time:", (other_default_time + total_run_time))
+                estimate_workload_time = (other_default_time + total_run_time)
+                print("estimate whole workload time:", estimate_workload_time)
+                if estimate_workload_time < best_simulation_time:
+                    best_simulation_time = estimate_workload_time
+                    best_configs = {"heavy": selected_heavy_action_frozen, "light": selected_light_actions}
 
                 current_time = time.time()
                 print("current global time:", (current_time - start_time))
                 print("global time for indices:", idx_build_time)
 
-                light_root.update_statistics(light_reward, selected_light_actions)
+                light_root.update_statistics_with_mcts_reward(light_reward, selected_light_actions)
                 # update the best gain for each query
                 for sample_query_id in range(len(sampled_query_list)):
                     sample_query = sampled_query_list[sample_query_id]
@@ -207,10 +215,13 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
         end_episode_time = time.time()
         print("current time:", (end_episode_time - start_time))
         print("time for indices:", idx_build_time)
-        print("best heavy action", heavy_root.best_actions())
+        print("current best heavy action", heavy_root.best_actions())
         t1 += delay_time
         sys.stdout.flush()
 
-    print("best heavy action", heavy_root.best_actions())
+    # best heavy action from tree search
+    print("best heavy action from tree search", heavy_root.best_actions())
+    print("best heavy action during the simulation", heavy_root.best_actions())
+    print("best configurations during the simulation", best_configs)
 
     print("end:", time.time())
