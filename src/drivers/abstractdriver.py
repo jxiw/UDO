@@ -6,7 +6,9 @@ class AbstractDriver(object):
         self.name = name
         self.config = conf
         self.sys_params = sys_params
-        
+        self.sys_params_type = len(self.sys_params)
+        self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
+
     def __str__(self):
         return self.driver_name
 
@@ -30,15 +32,26 @@ class AbstractDriver(object):
         """drop index"""
         return None
 
+    def build_index_command(self, index_to_create):
+        """build index command"""
+        return None
+
     def set_system_parameter(self, parameter_sql):
         """switch system parameters"""
-        return None
+        self.cursor.execute(parameter_sql)
+        # self.conn.commit()
 
     def change_system_parameter(self, parameter_choices):
-        return None
+        for i in range(self.sys_params_type):
+            parameter_choice = int(parameter_choices[i])
+            parameter_change_sql = self.sys_params[i][parameter_choice]
+            print(parameter_change_sql)
+            self.set_system_parameter(parameter_change_sql)
+
+    def get_system_parameter_command(self, parameter_type, parameter_value):
+        return self.sys_params[parameter_type][parameter_value]
 
     def get_system_parameter_space(self):
-        """get the space of system parameters"""
-        return None
+        return self.sys_params_space
 
 ## CLASS

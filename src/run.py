@@ -28,7 +28,7 @@ udo_parser.add_argument('-indices',
 udo_parser.add_argument('-sys_params',
                         help='the input system params json file')
 # tuning time
-udo_parser.add_argument('-duration', default=5, type=int,
+udo_parser.add_argument('-duration', default=5, type=float,
                         help='time for tuning in hours')
 # rl algorithm
 udo_parser.add_argument('-agent', default='udo', choices=('udo', 'udo-s', 'ddpg', 'sarsa'),

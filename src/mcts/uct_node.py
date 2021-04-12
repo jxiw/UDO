@@ -118,12 +118,17 @@ class uct_node(mcts_node):
             else:
                 return [selected_action] + self.playout(selected_action)
 
-    def update_statistics(self, reward, selected_actions):
-        for action_idx in range(self.nr_action):
-            current_action = self.actions[action_idx]
-            # we use the RAVE
-            if self.update_policy is UpdatePolicy.RAVE:
+    def update_statistics_with_mcts_reward(self, reward, selected_actions):
+        rewards = {selected_action: reward for selected_action in selected_actions}
+        self.update_statistics_with_delta_reward(rewards, selected_actions)
+
+    def update_statistics_with_delta_reward(self, rewards, selected_actions):
+        if self.update_policy is UpdatePolicy.RAVE:
+            for action_idx in range(self.nr_action):
+                current_action = self.actions[action_idx]
+                # we use the RAVE
                 if current_action in selected_actions:
+                    reward = rewards[current_action]
                     self.total_visit += 1
                     self.nr_tries[action_idx] += 1
                     self.first_moment[action_idx] += reward
@@ -131,23 +136,24 @@ class uct_node(mcts_node):
                     # update the reward for subtree
                     if self.children[action_idx] is not None:
                         next_selected_actions = list(filter(lambda x: x != current_action, selected_actions))
-                        self.children[action_idx].update_statistics(reward, next_selected_actions)
-            else:
-                selected_action_current_node = selected_actions[self.tree_level]
-                for action_idx in range(self.nr_action):
-                    if self.actions[action_idx] == selected_action_current_node:
-                        self.total_visit += 1
-                        self.nr_tries[action_idx] += 1
-                        self.first_moment[action_idx] += reward
-                        self.second_moment[action_idx] += reward * reward
-                        # self.mean_reward[action_idx] = self.first_moment[action_idx] / self.nr_tries[action_idx]
-                        if self.children[action_idx] is not None:
-                            self.children[action_idx].update_statistics(reward, selected_actions)
+                        self.children[action_idx].update_statistics_with_delta_reward(rewards, next_selected_actions)
+        else:
+            current_action = selected_actions[self.tree_level]
+            for action_idx in range(self.nr_action):
+                if self.actions[action_idx] == current_action:
+                    reward = rewards[current_action]
+                    self.total_visit += 1
+                    self.nr_tries[action_idx] += 1
+                    self.first_moment[action_idx] += reward
+                    self.second_moment[action_idx] += reward * reward
+                    # self.mean_reward[action_idx] = self.first_moment[action_idx] / self.nr_tries[action_idx]
+                    if self.children[action_idx] is not None:
+                        self.children[action_idx].update_statistics_with_delta_reward(rewards, selected_actions)
 
     def update_batch(self, update_infos):
-        for (rewards, select_action) in update_infos:
-            reward_info = {select_action[i]: rewards[i] for i in range(len(rewards))}
-            self.update_statistics(reward_info, select_action)
+        for (rewards, select_actions) in update_infos:
+            rewards = {select_actions[i]: rewards[i] for i in range(len(rewards))}
+            self.update_statistics_with_delta_reward(rewards, select_actions)
 
     def print(self):
         mean_reward = [0] * self.nr_action
@@ -156,7 +162,7 @@ class uct_node(mcts_node):
                 mean_reward[i] = self.first_moment[i] / self.nr_tries[i]
             else:
                 mean_reward[i] = 0
-        # print("first layer avg reward:", mean_reward)
+        print("first layer avg reward:", mean_reward)
 
     def best_actions(self):
         best_mean = 0

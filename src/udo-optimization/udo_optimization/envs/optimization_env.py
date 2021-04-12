@@ -177,6 +177,18 @@ class OptimizationEnv(gym.Env):
         self.current_state = next_state
         return next_state
 
+    def retrieve_light_action_comand(self, action):
+        parameter_action = action - self.nA_index
+        parameter_value = 0
+        parameter_type = 0
+        for parameter_type in range(len(self.parameter_candidate)):
+            parameter_range = self.parameter_candidate[parameter_type]
+            if parameter_action < (parameter_value + parameter_range):
+                parameter_value = parameter_action - parameter_value
+                break
+            parameter_value = parameter_value + parameter_range
+        self.driver.get_system_parameter_command(parameter_type, parameter_value)
+
     # evaluate the current state
     def evaluate_light(self, queries):
         state = self.current_state

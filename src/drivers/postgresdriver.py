@@ -1,11 +1,14 @@
 from __future__ import with_statement
 
 import logging
-import psycopg2
 import time
 
+import psycopg2
+from psycopg2._psycopg import InternalError
 from psycopg2._psycopg import QueryCanceledError
+
 from .abstractdriver import *
+
 
 # the DBMS connector for Postgres
 class PostgresDriver(AbstractDriver):
@@ -22,8 +25,6 @@ class PostgresDriver(AbstractDriver):
         self.index_creation_format = "CREATE INDEX %s ON %s (%s);"
         self.index_drop_format = "drop index %s;"
         self.is_cluster = True
-        self.sys_params_type = len(self.sys_params)
-        self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
         self.retrieve_table_name_sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
         self.cardinality_format = "select count(*) from %s;"
 
@@ -53,6 +54,10 @@ class PostgresDriver(AbstractDriver):
             except QueryCanceledError:
                 # print("timeout")
                 duration = current_timeout
+            except InternalError:
+                # error to run the query, set duration to a large number
+                print("Internal Error for query%s" % query_sql)
+                duration = current_timeout * 1000
             run_time.append(duration)
         # reset the timeout to the default configuration
         self.cursor.execute("set statement_timeout=0;")
@@ -74,6 +79,11 @@ class PostgresDriver(AbstractDriver):
             self.cursor.execute(cluster_indices_format % (index_to_create[0], index_to_create[1]))
         # self.conn.commit()
 
+    def build_index_command(self, index_to_create):
+        """build index"""
+        index_sql = self.index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2])
+        return index_sql
+
     def drop_index(self, index_to_drop):
         """drop index"""
         index_sql = self.index_drop_format % (index_to_drop[0])
@@ -81,20 +91,7 @@ class PostgresDriver(AbstractDriver):
         self.cursor.execute(index_sql)
         # self.conn.commit()
 
-    def set_system_parameter(self, parameter_sql):
-        """parameter change"""
-        logging.debug("change system parameter %s" % parameter_sql)
-        self.cursor.execute(parameter_sql)
-        # self.conn.commit()
-
-    def change_system_parameter(self, parameter_choices):
-        for i in range(self.sys_params_type):
-            parameter_choice = int(parameter_choices[i])
-            parameter_change_sql = self.sys_params[i][parameter_choice]
-            print(parameter_change_sql)
-            self.set_system_parameter(parameter_change_sql)
-
-    def get_system_parameter_space(self):
-        return self.sys_params_space
+    # def get_system_parameter_command(self, parameter_type, parameter_value):
+    #     return self.sys_params[parameter_type][parameter_value]
 
 ## CLASS

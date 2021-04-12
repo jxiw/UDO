@@ -79,17 +79,9 @@ class MysqlDriver(AbstractDriver):
         self.cursor.execute(self.index_drop_format % (index_to_drop[1], index_to_drop[0]))
         self.conn.commit()
 
-    def change_system_parameter(self, parameter_choices):
-        for i in range(self.sys_params_type):
-            parameter_choice = int(parameter_choices[i])
-            parameter_change_sql = self.sys_params[i][parameter_choice]
-            print(parameter_change_sql)
-            self.set_system_parameter(parameter_change_sql)
-
-    def set_system_parameter(self, parameter_sql):
-        """parameter change"""
-        logging.debug("change system parameter %s" % parameter_sql)
-        self.cursor.execute(parameter_sql)
-        self.conn.commit()
+    def build_index_command(self, index_to_create):
+        """build index"""
+        index_sql = self.index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2])
+        return index_sql
 
 ## CLASS

@@ -21,7 +21,8 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
     index_card_info = list(map(lambda x: x[4], candidate_indices))
     index_to_applicable_queries = env.index_to_applicable_queries
 
-    print("start:", time.time())
+    start_tune_time = time.time()
+    print("start:", start_tune_time)
 
     optimizer = order_optimizer.OrderOptimizer(index_card_info)
 
@@ -168,7 +169,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             macro_performance_info[selected_heavy_action_frozen] = best_micro_performance
 
         print("macro_performance_info:", macro_performance_info)
-        sys.stdout.flush()
+        # sys.stdout.flush()
         # ### obtain the best macro performances info
         best_slot_performance = dict()
         for selected_heavy_action_frozen, performance in macro_performance_info.items():
@@ -217,11 +218,60 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
         print("time for indices:", idx_build_time)
         print("current best heavy action", heavy_root.best_actions())
         t1 += delay_time
-        sys.stdout.flush()
+        # sys.stdout.flush()
 
+    best_heavy_configs = heavy_root.best_actions()
+    # best frozen heavy configs
+    best_frozen_heavy_configs = frozenset(best_heavy_configs)
+    if best_frozen_heavy_configs in light_tree_cache:
+        light_root = light_tree_cache[best_frozen_heavy_configs]
+    else:
+        light_root = uct_node(round=0, tree_level=0, tree_height=light_tree_height, state=init_state, env=env,
+                              space_type=SpaceType.Light)
+
+    # additional step
+    query_to_consider = set(
+        [applicable_query for applicable_queries in
+         list(map(lambda x: index_to_applicable_queries[x], best_heavy_configs)) for applicable_query in
+         applicable_queries])
+    micro_episode_final_tune = 50
+    for t2 in range(1, micro_episode_final_tune):
+        # for the micro episode
+        env.reset()
+        selected_light_actions = light_root.sample(t1 * micro_episode + t2)
+        # evaluate the light actions
+        for selected_light_action in selected_light_actions:
+            # move to next state
+            state = env.step_without_evaluation(selected_light_action)
+        # obtain sample number
+        sample_num = math.ceil(query_evaluate_sample_rate * len(query_to_consider))
+        # generate sample queries
+        sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
+        print("sampled_query_list:", sampled_query_list)
+        # obtain run time info by running queries within timeout
+        run_time = env.evaluate_light([queries[query_ids[select_query]] for select_query in sampled_query_list])
+        # the total time of sampled queries
+        total_run_time = sum(run_time)
+        # the default time of sampled queries
+        default_time = sum(default_runtime[select_query] for select_query in sampled_query_list)
+        # the relative ration of the improvement, the less of total_run_time, the better
+        light_reward = default_time / total_run_time
+        print("light_action:", selected_light_actions)
+        print("light_reward:", light_reward)
+        light_root.update_statistics_with_mcts_reward(light_reward, selected_light_actions)
+    best_light_configs = light_root.best_actions()
     # best heavy action from tree search
-    print("best heavy action from tree search", heavy_root.best_actions())
-    print("best heavy action during the simulation", heavy_root.best_actions())
     print("best configurations during the simulation", best_configs)
+    print("best heavy action from tree search", heavy_root.best_actions())
+    print("best_light_config:", best_light_configs)
 
-    print("end:", time.time())
+    final_tune_time = time.time()
+    print("end:", final_tune_time)
+
+    print(f"Summary: Total Tuning Time {(final_tune_time - start_tune_time) / 3600} hours")
+    best_candidate_indices = [candidate_indices[config] for config in best_heavy_configs]
+    print(f"Best index configurations:")
+    for best_candidate_index in best_candidate_indices:
+        print(driver.build_index_command(best_candidate_index))
+    print(f"Best system parameters:")
+
