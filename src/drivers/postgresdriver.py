@@ -27,6 +27,7 @@ class PostgresDriver(AbstractDriver):
         self.is_cluster = True
         self.retrieve_table_name_sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
         self.cardinality_format = "select count(*) from %s;"
+        self.cluster_indices_format = "CLUSTER %s ON %s;"
 
     def cardinalities(self):
         self.cursor.execute(self.retrieve_table_name_sql)
@@ -45,6 +46,8 @@ class PostgresDriver(AbstractDriver):
         run_time = []
         for query_sql, current_timeout in zip(query_list, timeout):
             try:
+                # print("query sql:", query_sql)
+                # print("current timeout:", current_timeout)
                 current_timeout = current_timeout
                 self.cursor.execute("set statement_timeout=%d" % (current_timeout * 1000))
                 start_time = time.time()
@@ -58,6 +61,7 @@ class PostgresDriver(AbstractDriver):
                 # error to run the query, set duration to a large number
                 print("Internal Error for query%s" % query_sql)
                 duration = current_timeout * 1000
+            # print("duration:", duration)
             run_time.append(duration)
         # reset the timeout to the default configuration
         self.cursor.execute("set statement_timeout=0;")
@@ -75,14 +79,14 @@ class PostgresDriver(AbstractDriver):
         self.cursor.execute(index_sql)
         # if we consider the cluster indices
         if self.is_cluster:
-            cluster_indices_format = "CLUSTER %s ON %s"
-            self.cursor.execute(cluster_indices_format % (index_to_create[0], index_to_create[1]))
+            self.cursor.execute(self.cluster_indices_format % (index_to_create[0], index_to_create[1]))
         # self.conn.commit()
 
     def build_index_command(self, index_to_create):
         """build index"""
         index_sql = self.index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2])
-        return index_sql
+        cluster_sql = self.cluster_indices_format % (index_to_create[0], index_to_create[1])
+        return f"{index_sql} \n {cluster_sql}"
 
     def drop_index(self, index_to_drop):
         """drop index"""

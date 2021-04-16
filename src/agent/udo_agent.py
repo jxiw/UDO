@@ -1,6 +1,5 @@
 import math
 import random
-import sys
 import time
 
 import gym
@@ -131,13 +130,16 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                 sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
                 print("sampled_query_list:", sampled_query_list)
                 # obtain run time info by running queries within timeout
-                run_time = env.evaluate_light([queries[query_ids[select_query]] for select_query in sampled_query_list])
+                run_time = env.evaluate_light(sampled_query_list)
                 # the total time of sampled queries
                 total_run_time = sum(run_time)
                 # the default time of sampled queries
-                default_time = sum(default_runtime[select_query] for select_query in sampled_query_list)
+                default_runtime_of_sampled_queries = [default_runtime[select_query] for select_query in
+                                                      sampled_query_list]
+                sum_default_time_of_sampled_queries = sum(default_runtime_of_sampled_queries)
                 # the relative ration of the improvement, the less of total_run_time, the better
-                light_reward = default_time / total_run_time
+                light_reward = sum_default_time_of_sampled_queries / total_run_time
+                print("default_runtime_of_sampled_queries", default_runtime_of_sampled_queries)
                 print("light_action:", selected_light_actions)
                 print("light_reward:", light_reward)
 
@@ -157,10 +159,11 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                 # update the best gain for each query
                 for sample_query_id in range(len(sampled_query_list)):
                     sample_query = sampled_query_list[sample_query_id]
+                    run_time_of_sampled_query = run_time[sample_query_id]
                     if sample_query in best_micro_performance:
                         # if we get better improvement, then set it to better time
-                        if run_time[sample_query_id] < best_micro_performance[sample_query]:
-                            best_micro_performance[sample_query] = run_time[sample_query_id]
+                        if run_time_of_sampled_query < best_micro_performance[sample_query]:
+                            best_micro_performance[sample_query] = run_time_of_sampled_query
                     else:
                         best_micro_performance[sample_query] = run_time[sample_query_id]
                 if sum(run_time) < best_reward:
@@ -191,7 +194,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                 if selected_heavy_actions[i] != terminate_action:
                     selected_heavy_action_frozen = frozenset(selected_heavy_actions[:i + 1])
                     print("current selected_heavy_action_frozen:", selected_heavy_action_frozen)
-                    current_performance = macro_performance_info[selected_heavy_action_frozen]
+                    applicable_query_performance = macro_performance_info[selected_heavy_action_frozen]
                     # generate reward based on the difference between previous performance and current performance
                     # the query for current indices
                     query_to_consider_new = index_to_applicable_queries[selected_heavy_actions[i]]
@@ -200,11 +203,15 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                     for query in query_to_consider_new:
                         previous_runtime = default_runtime[query]
                         current_runtime = default_runtime[query]
-                        if query in current_performance:
-                            current_runtime = current_performance[query]
+                        if query in applicable_query_performance:
+                            current_runtime = applicable_query_performance[query]
                         if query in previous_performance:
                             previous_runtime = previous_performance[query]
-                        delta_improvement += max(previous_runtime - current_runtime, 0)
+                        delta_improvement += (previous_runtime - current_runtime)
+                    previous_performance = applicable_query_performance
+                    print("applicable_query_performance:", applicable_query_performance)
+                    print("previous_performance:", previous_performance)
+                    delta_improvement = max(delta_improvement, 0)
                     update_reward.append(delta_improvement)
             # update the tree based on the simulation results
             update_info_slot.append((update_reward, [heavy_action for heavy_action in selected_heavy_actions if
@@ -229,11 +236,11 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
         light_root = uct_node(round=0, tree_level=0, tree_height=light_tree_height, state=init_state, env=env,
                               space_type=SpaceType.Light)
 
-    # additional step
-    query_to_consider = set(
-        [applicable_query for applicable_queries in
-         list(map(lambda x: index_to_applicable_queries[x], best_heavy_configs)) for applicable_query in
-         applicable_queries])
+    # additional step, tuning the final index configuration
+    # build the indices
+    add_action = set(best_heavy_configs) - previous_set
+    drop_action = previous_set - set(best_heavy_configs)
+    env.index_step(add_action, drop_action)
     micro_episode_final_tune = 50
     for t2 in range(1, micro_episode_final_tune):
         # for the micro episode
@@ -243,17 +250,11 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
         for selected_light_action in selected_light_actions:
             # move to next state
             state = env.step_without_evaluation(selected_light_action)
-        # obtain sample number
-        sample_num = math.ceil(query_evaluate_sample_rate * len(query_to_consider))
-        # generate sample queries
-        sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
-        print("sampled_query_list:", sampled_query_list)
         # obtain run time info by running queries within timeout
-        run_time = env.evaluate_light([queries[query_ids[select_query]] for select_query in sampled_query_list])
-        # the total time of sampled queries
+        run_time = env.evaluate_light([query for query in range(nr_query)])
+        # the total time of total queries
         total_run_time = sum(run_time)
-        # the default time of sampled queries
-        default_time = sum(default_runtime[select_query] for select_query in sampled_query_list)
+        default_time = sum(default_runtime)
         # the relative ration of the improvement, the less of total_run_time, the better
         light_reward = default_time / total_run_time
         print("light_action:", selected_light_actions)
@@ -274,4 +275,5 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
     for best_candidate_index in best_candidate_indices:
         print(driver.build_index_command(best_candidate_index))
     print(f"Best system parameters:")
-
+    for light_config in best_light_configs:
+        print(env.retrieve_light_action_command(light_config))

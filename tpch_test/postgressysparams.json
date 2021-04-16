@@ -27,6 +27,13 @@
     "set force_parallel_mode = on;"
   ],
   [
+    "set max_parallel_workers_per_gather = 2;",
+    "set max_parallel_workers_per_gather = 0;",
+    "set max_parallel_workers_per_gather = 10;",
+    "set max_parallel_workers_per_gather = 100;",
+    "set max_parallel_workers_per_gather = 1000;"
+  ],
+  [
     "set temp_buffers = 1024;",
     "set temp_buffers = 100;",
     "set temp_buffers = 1000;",

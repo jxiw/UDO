@@ -30,6 +30,9 @@ udo_parser.add_argument('-sys_params',
 # tuning time
 udo_parser.add_argument('-duration', default=5, type=float,
                         help='time for tuning in hours')
+
+udo_parser.add_argument('-timeout', nargs='+', type=float, help='timeout for each query')
+
 # rl algorithm
 udo_parser.add_argument('-agent', default='udo', choices=('udo', 'udo-s', 'ddpg', 'sarsa'),
                         help='reinforcement learning agent')
@@ -67,7 +70,7 @@ args = vars(args)
 # init queries
 if args['queries']:
     queries = dict()
-    for file_name in os.listdir(args['queries']):
+    for file_name in sorted(os.listdir(args['queries'])):
         if file_name.endswith(".sql"):
             with open(os.path.join(args['queries'], file_name)) as f:
                 content = f.read()
@@ -107,6 +110,10 @@ if not args['sys_params']:
 
 with open(args['sys_params'], 'rt') as f:
     sys_params = json.load(f)
+
+if args['timeout']:
+  timeout = args['timeout']
+  print(timeout)
 
 # create a dbms driver
 if args['system'] == "mysql":

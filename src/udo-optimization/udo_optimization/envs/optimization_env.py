@@ -64,14 +64,18 @@ class OptimizationEnv(gym.Env):
         self.queries = queries
         self.query_ids = list(self.queries.keys())
         self.nr_query = len(self.queries)
+        self.query_sqls = [self.queries[query_id] for query_id in self.query_ids]
         query_to_id = {self.query_ids[idx]: idx for idx in range(self.nr_query)}
         print("query_to_id:", query_to_id)
         self.index_to_applicable_queries = list(
             map(lambda x: list(map(lambda y: query_to_id[y], x[3])), self.candidate_indices))
 
         # the default run time
-        self.default_runtime = self.driver.run_queries_without_timeout(list(self.queries.values()))
-        self.runtime_out = [1.2 * query_runtime for query_runtime in self.default_runtime]
+        input_runtime_out = [6] * self.nr_query
+        # #[12, 0.3, 13, 3, 5, 5, 8, 12, 2, 7, 9, 6, 9.7, 5.6, 40, 0.4, 20, 1.6, 11, 5, 4]
+        self.default_runtime = self.driver.run_queries_with_timeout(self.query_sqls, input_runtime_out)
+        self.runtime_out = [1.1 * query_runtime for query_runtime in self.default_runtime]
+        print(self.runtime_out)
 
     # map a number to a state
     def state_decoder(self, num):
@@ -177,7 +181,7 @@ class OptimizationEnv(gym.Env):
         self.current_state = next_state
         return next_state
 
-    def retrieve_light_action_comand(self, action):
+    def retrieve_light_action_command(self, action):
         parameter_action = action - self.nA_index
         parameter_value = 0
         parameter_type = 0
@@ -187,10 +191,10 @@ class OptimizationEnv(gym.Env):
                 parameter_value = parameter_action - parameter_value
                 break
             parameter_value = parameter_value + parameter_range
-        self.driver.get_system_parameter_command(parameter_type, parameter_value)
+        return self.driver.get_system_parameter_command(parameter_type, parameter_value)
 
     # evaluate the current state
-    def evaluate_light(self, queries):
+    def evaluate_light(self, sampled_queries):
         state = self.current_state
         # print("current state:")
         # print(state)
@@ -199,7 +203,9 @@ class OptimizationEnv(gym.Env):
         # change system parameter
         self.driver.change_system_parameter(parameter_current_state)
         # invoke queries
-        run_time = self.driver.run_queries_with_timeout(queries, self.runtime_out)
+        run_time = self.driver.run_queries_with_timeout(
+            [self.query_sqls[sampled_query] for sampled_query in sampled_queries],
+            [self.runtime_out[sampled_query] for sampled_query in sampled_queries])
         print("evaluate time:", sum(run_time))
         return run_time
 
@@ -283,8 +289,8 @@ class OptimizationEnv(gym.Env):
 
         # invoke queries
         run_time = self.driver.run_queries_with_timeout(
-            [self.queries[self.query_ids[sample_query]] for sample_query in sample_queries],
-            self.runtime_out)
+            [self.query_sqls[sample_query] for sample_query in sample_queries],
+            [self.runtime_out[sampled_query] for sampled_query in sample_queries])
         print("run time:", run_time)
         print("index time:", self.accumulated_index_time)
         print("evaluate time:", sum(run_time))
@@ -292,6 +298,8 @@ class OptimizationEnv(gym.Env):
         next_state = np.concatenate([index_current_state, parameter_current_state])
         self.current_state = next_state
         print("next state:", next_state)
+        print("estimate whole workload time:", sum(run_time) + sum(
+            [self.default_runtime[query] for query in range(self.nr_query) if query not in sample_queries]))
 
         # scale the reward
         reward = sum(self.default_runtime) / sum(run_time)

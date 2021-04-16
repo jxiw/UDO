@@ -37,8 +37,8 @@ class uct_node(mcts_node):
         # tuning parameters for UCB1
         self.explore_rate = 1.2
         # tuning parameters for UCBV
-        self.bound = 1
-        self.const = 1
+        self.bound = 0.01
+        self.const = 0.01
 
     # uct selection
     def select_action(self):

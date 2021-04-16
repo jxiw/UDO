@@ -45,7 +45,8 @@ class AbstractDriver(object):
         for i in range(self.sys_params_type):
             parameter_choice = int(parameter_choices[i])
             parameter_change_sql = self.sys_params[i][parameter_choice]
-            print(parameter_change_sql)
+            if parameter_choice > 0:
+                print(parameter_change_sql)
             self.set_system_parameter(parameter_change_sql)
 
     def get_system_parameter_command(self, parameter_type, parameter_value):
