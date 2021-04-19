@@ -242,6 +242,8 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
     drop_action = previous_set - set(best_heavy_configs)
     env.index_step(add_action, drop_action)
     micro_episode_final_tune = 50
+    best_light_runtime = sum(default_runtime)
+    best_light_config_simulation = []
     for t2 in range(1, micro_episode_final_tune):
         # for the micro episode
         env.reset()
@@ -255,6 +257,9 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
         # the total time of total queries
         total_run_time = sum(run_time)
         default_time = sum(default_runtime)
+        if total_run_time < best_light_runtime:
+            best_light_runtime = total_run_time
+            best_light_config_simulation = selected_light_actions
         # the relative ration of the improvement, the less of total_run_time, the better
         light_reward = default_time / total_run_time
         print("light_action:", selected_light_actions)
@@ -275,5 +280,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
     for best_candidate_index in best_candidate_indices:
         print(driver.build_index_command(best_candidate_index))
     print(f"Best system parameters:")
-    for light_config in best_light_configs:
+    # for light_config in best_light_configs:
+    #     print(env.retrieve_light_action_command(light_config))
+    for light_config in best_light_config_simulation:
         print(env.retrieve_light_action_command(light_config))

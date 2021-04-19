@@ -71,10 +71,14 @@ class OptimizationEnv(gym.Env):
             map(lambda x: list(map(lambda y: query_to_id[y], x[3])), self.candidate_indices))
 
         # the default run time
-        input_runtime_out = [6] * self.nr_query
+        default_time_out_per_query = 6
+        time_out_ratio = 1.1
+        input_runtime_out = [default_time_out_per_query] * self.nr_query
         # #[12, 0.3, 13, 3, 5, 5, 8, 12, 2, 7, 9, 6, 9.7, 5.6, 40, 0.4, 20, 1.6, 11, 5, 4]
         self.default_runtime = self.driver.run_queries_with_timeout(self.query_sqls, input_runtime_out)
-        self.runtime_out = [1.1 * query_runtime for query_runtime in self.default_runtime]
+        self.runtime_out = [
+            time_out_ratio * query_runtime if query_runtime < default_time_out_per_query
+            else default_time_out_per_query for query_runtime in self.default_runtime]
         print(self.runtime_out)
 
     # map a number to a state

@@ -24,7 +24,7 @@ class PostgresDriver(AbstractDriver):
         self.cursor = self.conn.cursor()
         self.index_creation_format = "CREATE INDEX %s ON %s (%s);"
         self.index_drop_format = "drop index %s;"
-        self.is_cluster = True
+        self.is_cluster = False
         self.retrieve_table_name_sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
         self.cardinality_format = "select count(*) from %s;"
         self.cluster_indices_format = "CLUSTER %s ON %s;"
@@ -85,8 +85,11 @@ class PostgresDriver(AbstractDriver):
     def build_index_command(self, index_to_create):
         """build index"""
         index_sql = self.index_creation_format % (index_to_create[0], index_to_create[1], index_to_create[2])
-        cluster_sql = self.cluster_indices_format % (index_to_create[0], index_to_create[1])
-        return f"{index_sql} \n {cluster_sql}"
+        if self.is_cluster:
+            cluster_sql = self.cluster_indices_format % (index_to_create[0], index_to_create[1])
+            return f"{index_sql} \n {cluster_sql}"
+        else:
+            return index_sql
 
     def drop_index(self, index_to_drop):
         """drop index"""
