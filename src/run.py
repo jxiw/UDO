@@ -1,7 +1,31 @@
+# -----------------------------------------------------------------------
+# Copyright (c) 2021    Cornell Database Group
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+# -----------------------------------------------------------------------
+
 import argparse
 import json
 import os
 import random
+
 import numpy as np
 
 from agent.ddpg_agent import run_ddpg_agent
@@ -31,8 +55,6 @@ udo_parser.add_argument('-sys_params',
 udo_parser.add_argument('-duration', default=5, type=float,
                         help='time for tuning in hours')
 
-udo_parser.add_argument('-timeout', nargs='+', type=float, help='timeout for each query')
-
 # rl algorithm
 udo_parser.add_argument('-agent', default='udo', choices=('udo', 'udo-s', 'ddpg', 'sarsa'),
                         help='reinforcement learning agent')
@@ -49,8 +71,17 @@ udo_parser.add_argument('-rl_reward', choices=('delta', 'accumulate'),
                         help='the reward of reinforcement learning agent')
 udo_parser.add_argument('-rl_delay', choices=('UCB', 'Exp3'),
                         help='the delay selection policy')
-udo_parser.add_argument('-rl_max_delay_time', type=int,
+udo_parser.add_argument('-rl_max_delay_time', type=int, default=5,
                         help='the delay selection policy')
+
+# tuning configuration
+udo_parser.add_argument('-sample_rate', type=int,
+                        help='sampled rate from workload')
+udo_parser.add_argument('-default_query_time_out', type=int,
+                        help='default timeout in seconds for each query')
+udo_parser.add_argument('-time_out_ratio', type=float,
+                        help='timeout ratio respect to default time')
+
 # load json file
 udo_parser.add_argument('--load_json',
                         help='Load settings from file in json format. Command line options override values in file.')
@@ -111,11 +142,8 @@ if not args['sys_params']:
 with open(args['sys_params'], 'rt') as f:
     sys_params = json.load(f)
 
-if args['timeout']:
-  timeout = args['timeout']
-  print(timeout)
-
 # create a dbms driver
+driver = None
 if args['system'] == "mysql":
     driver = MysqlDriver(dbms_conf, sys_params)
 elif args['system'] == "postgres":
@@ -150,6 +178,14 @@ candidate_indices = [candidate_index for candidate_index in candidate_indices if
 random.seed(123)
 np.random.seed(123)
 
+tuning_config = {
+    "duration": args['duration'],
+    "horizon": args['horizon'],
+    "sample_rate": args['sample_rate'],
+    "default_query_time_out": args['default_query_time_out'],
+    "time_out_ratio": args['time_out_ratio']
+}
+
 # if the agent is udo
 if args['agent'] == 'udo':
     if not args['heavy_horizon']:
@@ -157,21 +193,19 @@ if args['agent'] == 'udo':
         exit()
     # run udo
     horizon = args['horizon']
-    heavy_horizon = args['heavy_horizon']
-    run_udo_agent(driver=driver, queries=queries, candidate_indices=candidate_indices, duration=args['duration'],
-                  heavy_horizon=heavy_horizon, light_horizon=(horizon - heavy_horizon),
-                  delay_time=args['rl_max_delay_time'])
+    tuning_config['heavy_horizon'] = args['heavy_horizon']
+    tuning_config['light_horizon'] = horizon - int(args['heavy_horizon'])
+    tuning_config['rl_max_delay_time'] = args['rl_max_delay_time']
+    run_udo_agent(driver=driver, queries=queries, candidate_indices=candidate_indices, tuning_config=tuning_config)
 elif args['agent'] == 'udo-s':
     # run simplified udo
     run_simplifed_udo_agent(driver=driver, queries=queries, candidate_indices=candidate_indices,
-                            duration=args['duration'], horizon=args['horizon'])
+                            tuning_config=tuning_config)
 elif args['agent'] == 'ddpg':
     # run ddpg deep rl
-    run_ddpg_agent(driver=driver, queries=queries, candidate_indices=candidate_indices, duration=args['duration'],
-                   horizon=args['horizon'])
+    run_ddpg_agent(driver=driver, queries=queries, candidate_indices=candidate_indices, tuning_config=tuning_config)
 elif args['agent'] == 'sarsa':
     # run sarsa deep rl
-    run_sarsa_agent(driver=driver, queries=queries, candidate_indices=candidate_indices, duration=args['duration'],
-                    horizon=args['horizon'])
+    run_sarsa_agent(driver=driver, queries=queries, candidate_indices=candidate_indices, tuning_config=tuning_config)
 
 # print(args.accumulate(args.integers))

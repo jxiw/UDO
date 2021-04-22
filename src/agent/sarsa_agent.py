@@ -1,22 +1,23 @@
-import numpy as np
 import gym
-import udo_optimization
+import logging
 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Activation, Flatten
-from tensorflow.keras.optimizers import Adam
-
+import gym
 from rl.agents import SARSAAgent
 from rl.policy import BoltzmannQPolicy
+from tensorflow.keras.layers import Dense, Activation, Flatten
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
 
-def run_sarsa_agent(driver, queries, candidate_indices, duration, horizon):
 
+def run_sarsa_agent(driver, queries, candidate_indices, tuning_config):
     # Get the environment and extract the number of actions.
-    env = gym.make("udo_optimization-v0", driver=driver, queries=queries, candidate_indices=candidate_indices)
-    env.horizon = horizon
+    env = gym.make("udo_optimization-v0", driver=driver, queries=queries, candidate_indices=candidate_indices,
+                   config=tuning_config)
+    env.horizon = tuning_config['horizon']
+
     nb_actions = env.action_space.n
-    print("nr action:", nb_actions)
-    print("observation space:", env.observation_space.shape)
+    logging.info(f"nr action: {nb_actions}")
+    logging.info(f"observation space: {env.observation_space.shape}")
 
     # Next, we build a very simple model.
     model = Sequential()
@@ -32,7 +33,7 @@ def run_sarsa_agent(driver, queries, candidate_indices, duration, horizon):
     model.add(Dense(nb_actions))
     model.add(Activation('linear'))
 
-    print(model.summary())
+    logging.info(model.summary())
 
     # SARSA does not require a memory.
     policy = BoltzmannQPolicy()
@@ -49,4 +50,5 @@ def run_sarsa_agent(driver, queries, candidate_indices, duration, horizon):
     # sarsa.save_weights('sarsa_{}_weights.h5f'.format(udo_optimization-v0), overwrite=True)
 
     # Finally, evaluate our algorithm for 5 episodes.
-    sarsa.test(env, nb_episodes=5, visualize=True)
+    sarsa.test(env, nb_episodes=5, visualize=False)
+    env.print_state_summary(env.best_state)

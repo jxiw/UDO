@@ -1,13 +1,43 @@
+# -----------------------------------------------------------------------
+# Copyright (c) 2021    Cornell Database Group
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+# -----------------------------------------------------------------------
+
+import logging
+
 class OrderOptimizer:
+    """
+        Optimize the evaluation order using the estimated cost
+    """
+
     def __init__(self, index_card_info):
+        """cardinality information"""
         self.index_card_info = index_card_info
 
     def index_build_cost(self, current_index_list):
+        """index build cost according to table cardinality"""
         return sum(self.index_card_info[current_index] for current_index in current_index_list)
 
     def greedy_min_cost_order(self, selected_action_batch):
-        # determine the order to evaluate those actions of the given batch
-        # dp algorithm
+        """determine the order to evaluate those actions of the given batch using greedy"""
         batch_size = len(selected_action_batch)
         if batch_size < 3:
             return range(batch_size)
@@ -49,7 +79,5 @@ class OrderOptimizer:
                         min_pos = insert_pos
                 # update the order
                 order.insert(min_pos + 1, selected_action_idx)
-                # print("current order")
-                # print(order)
-            print("min cost order ", order)
+            logging.debug("min cost order ", order)
             return order

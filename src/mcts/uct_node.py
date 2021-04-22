@@ -1,3 +1,27 @@
+# -----------------------------------------------------------------------
+# Copyright (c) 2021    Cornell Database Group
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+# -----------------------------------------------------------------------
+
+import logging
 import math
 import random
 
@@ -12,11 +36,11 @@ class uct_node(mcts_node):
         self.env = env
         self.state = state
         if space_type is SpaceType.Light:
-            self.actions = env.choose_all_light_actions(state)
+            self.actions = env.retrieve_light_actions(state)
         elif space_type is SpaceType.Heavy:
-            self.actions = env.choose_all_heavy_actions(state)
+            self.actions = env.retrieve_heavy_actions(state)
         else:
-            self.actions = env.choose_all_actions(state)
+            self.actions = env.retrieve_actions(state)
         self.nr_action = len(self.actions)
         self.tree_level = tree_level
         # for the children node
@@ -25,7 +49,6 @@ class uct_node(mcts_node):
         self.nr_tries = [0] * self.nr_action
         self.first_moment = [0] * self.nr_action
         self.second_moment = [0] * self.nr_action
-        # self.mean_reward = [0] * self.nr_action
         self.total_visit = 0
         self.priority_actions = self.actions.copy()
         self.tree_height = tree_height
@@ -37,11 +60,11 @@ class uct_node(mcts_node):
         # tuning parameters for UCB1
         self.explore_rate = 1.2
         # tuning parameters for UCBV
-        self.bound = 0.01
-        self.const = 0.01
+        self.bound = 0.1
+        self.const = 0.1
 
-    # uct selection
     def select_action(self):
+        """select action according to rl policy"""
         if len(self.priority_actions) > 0:
             selected_action = random.choice(self.priority_actions)
             self.priority_actions.remove(selected_action)
@@ -69,20 +92,18 @@ class uct_node(mcts_node):
             return self.actions[best_action_idx], best_action_idx
 
     def playout(self, current_level_action):
-        # obtain the current actions
+        """randomly select other actions until reaching to terminate state"""
         current_level_state = self.state
         selected_action_path = []
         for current_level in range(self.tree_level + 1, self.tree_height):
             current_level_state, current_state_id = self.env.transition(current_level_state,
                                                                         current_level_action)
-            # current_candidate_actions = self.env.choose_all_actions(current_level_state)
-            print(self.space_type is SpaceType.Heavy)
             if self.space_type is SpaceType.Light:
-                current_candidate_actions = self.env.choose_all_light_actions(current_level_state)
+                current_candidate_actions = self.env.retrieve_light_actions(current_level_state)
             elif self.space_type is SpaceType.Heavy:
-                current_candidate_actions = self.env.choose_all_heavy_actions(current_level_state)
+                current_candidate_actions = self.env.retrieve_heavy_actions(current_level_state)
             elif self.space_type == SpaceType.All:
-                current_candidate_actions = self.env.choose_all_actions(current_level_state)
+                current_candidate_actions = self.env.retrieve_actions(current_level_state)
             # choose one random action from the action space
             if self.terminate_action is not None:
                 current_candidate_actions.append(self.terminate_action)
@@ -91,8 +112,8 @@ class uct_node(mcts_node):
         return selected_action_path
 
     def sample(self, round):
+        """sample actions from search tree"""
         if self.nr_action == 0:
-            # leaf node
             return []
         else:
             # inner node
@@ -101,9 +122,7 @@ class uct_node(mcts_node):
                 # for the terminate action, stop expansion
                 return [selected_action]
             can_expand = (self.create_in != round) and (self.tree_level < self.tree_height)
-            # print(selected_action_idx)
             if can_expand and not self.children[selected_action_idx]:
-                # expend
                 state, state_idx = self.env.transition(self.state, selected_action)
                 self.children[selected_action_idx] = uct_node(round=0, tree_level=self.tree_level + 1,
                                                               tree_height=self.tree_height, state=state, env=self.env,
@@ -119,14 +138,16 @@ class uct_node(mcts_node):
                 return [selected_action] + self.playout(selected_action)
 
     def update_statistics_with_mcts_reward(self, reward, selected_actions):
+        """update mcts statistics using reward information"""
         rewards = {selected_action: reward for selected_action in selected_actions}
         self.update_statistics_with_delta_reward(rewards, selected_actions)
 
     def update_statistics_with_delta_reward(self, rewards, selected_actions):
+        """update mcts statistics using intermediate reward information"""
         if self.update_policy is UpdatePolicy.RAVE:
             for action_idx in range(self.nr_action):
                 current_action = self.actions[action_idx]
-                # we use the RAVE
+                # we use the RAVE update policy
                 if current_action in selected_actions:
                     reward = rewards[current_action]
                     self.total_visit += 1
@@ -155,16 +176,18 @@ class uct_node(mcts_node):
             rewards = {select_actions[i]: rewards[i] for i in range(len(rewards))}
             self.update_statistics_with_delta_reward(rewards, select_actions)
 
-    def print(self):
+    def print_reward_info(self):
+        """print the reward information"""
         mean_reward = [0] * self.nr_action
         for i in range(self.nr_action):
             if self.nr_tries[i] > 0:
                 mean_reward[i] = self.first_moment[i] / self.nr_tries[i]
             else:
                 mean_reward[i] = 0
-        print("first layer avg reward:", mean_reward)
+        logging.debug(f"first layer avg reward {mean_reward}")
 
     def best_actions(self):
+        """best actions from the search tree"""
         best_mean = 0
         best_action_idx = -1
         for action_idx in range(self.nr_action):

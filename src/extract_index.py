@@ -1,7 +1,31 @@
+# -----------------------------------------------------------------------
+# Copyright (c) 2021    Cornell Database Group
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+# -----------------------------------------------------------------------
+
 import argparse
 import json
-import re
 import os
+import re
+import itertools
 
 udo_parser = argparse.ArgumentParser(description='UDO index candidate generator.')
 
@@ -13,7 +37,7 @@ args = udo_parser.parse_args()
 args = vars(args)
 
 with open(args['db_schema']) as f:
-  db_schema = json.load(f)
+    db_schema = json.load(f)
 
 if args['queries']:
     queries = dict()
@@ -49,12 +73,10 @@ for query_id, query in queries.items():
                             collect_indices[table].append(column)
 print(collect_indices)
 
-import itertools
 for k in collect_indices.keys():
     all_candidate = collect_indices[k]
     v = []
     for i in range(1, len(all_candidate) + 1):
         v += [','.join(comb) for comb in (itertools.combinations(all_candidate, i))]
     for i in range(len(v)):
-        print("('IDX_%s_%d','%s','%s'),"%(k, i, k, v[i]))
-
+        print("('IDX_%s_%d','%s','%s')," % (k, i, k, v[i]))

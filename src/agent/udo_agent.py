@@ -1,3 +1,27 @@
+# -----------------------------------------------------------------------
+# Copyright (c) 2021    Cornell Database Group
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+# -----------------------------------------------------------------------
+
+import logging
 import math
 import random
 import time
@@ -9,40 +33,32 @@ from mcts.uct_node import uct_node
 from optimizer import order_optimizer
 
 
-def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, light_horizon, delay_time=5):
-    duration_in_seconds = duration * 3600
-    env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices)
+def run_udo_agent(driver, queries, candidate_indices, tuning_config):
+    duration_in_seconds = tuning_config['duration'] * 3600
+    env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices,
+                   config=tuning_config)
 
     nr_query = len(queries)  # number of queries
-    query_ids = env.query_ids  # queries names
-    query_to_id = {query_ids[idx]: idx for idx in range(nr_query)}  # query number to query name
-
     index_card_info = list(map(lambda x: x[4], candidate_indices))
     index_to_applicable_queries = env.index_to_applicable_queries
 
     start_tune_time = time.time()
-    print("start:", start_tune_time)
+    logging.info(f"start: {start_tune_time}")
 
     optimizer = order_optimizer.OrderOptimizer(index_card_info)
 
     # number of indices equal heavy_tree_height + 1
-    heavy_tree_height = heavy_horizon
-    light_tree_height = light_horizon
+    heavy_tree_height = tuning_config['heavy_horizon']
+    light_tree_height = tuning_config['light_horizon']
+    max_delay_time = tuning_config['rl_max_delay_time']
 
     init_state = env.state_decoder(0)
-    # macro_episode = 10000
     micro_episode = 5
 
     terminate_action = env.index_candidate_num
     light_tree_cache = dict()
     query_evaluate_sample_rate = 1
-
-    # prepare the heavy configurations
-    # delay_time = 5
-
-    global_max_reward = 0
-    global_max_action = []
-
+    # reset the environment
     env.reset()
     default_runtime = env.default_runtime
 
@@ -58,8 +74,8 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
         selected_heavy_action_batch = []
         configuration_to_evaluate = []
         # remove_terminate_action_batch = []
-        print("delay_time:", delay_time)
-        for d in range(delay_time):
+        logging.debug(f"delay_time: {max_delay_time}")
+        for d in range(max_delay_time):
             selected_heavy_actions = heavy_root.sample(t1 + d)
             selected_heavy_action_batch.append(selected_heavy_actions)
             # add all intermediate steps
@@ -70,11 +86,11 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                 if current_actions not in configuration_to_evaluate:
                     configuration_to_evaluate.append(current_actions)
         # show those actions
-        print(selected_heavy_action_batch)
-        print("evaluate configurations:", configuration_to_evaluate)
+        logging.debug(f"selected heavy actions: {selected_heavy_action_batch}")
+        logging.debug(f"evaluate configurations: {configuration_to_evaluate}")
         # evaluated_order = range(0, len(remove_terminate_action_batch))
         evaluated_order = optimizer.greedy_min_cost_order(configuration_to_evaluate)
-        print("evaluated order:", evaluated_order)
+        logging.debug(f"evaluated order: {evaluated_order}")
         macro_performance_info = dict()
         for current_order_idx in range(len(evaluated_order)):
             current_order = evaluated_order[current_order_idx]
@@ -88,17 +104,15 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             if t1 > 1 or current_order_idx > 0:
                 add_action = add_action - previous_set
                 drop_action = previous_set - set(selected_heavy_action_frozen)
-                print("invoke action")
-                print(add_action)
-                print("drop action")
-                print(drop_action)
+                logging.debug(f"invoke action: {add_action}")
+                logging.debug(f"drop action: {drop_action}")
             # build the indices
             time_start = time.time()
             env.index_step(add_action, drop_action)
             time_end = time.time()
             idx_build_time += (time_end - time_start)
 
-            print("selected_heavy_action_frozen:", selected_heavy_action_frozen)
+            logging.debug(f"selected_heavy_action_frozen: {selected_heavy_action_frozen}")
             if selected_heavy_action_frozen in light_tree_cache:
                 light_root = light_tree_cache[selected_heavy_action_frozen]
             else:
@@ -113,7 +127,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                  list(map(lambda x: index_to_applicable_queries[x], selected_heavy_action_frozen)) for applicable_query
                  in
                  applicable_queries])
-            print("query to consider:", query_to_consider)
+            logging.debug(f"query to consider: {query_to_consider}")
             # best performance of the sampled each query
             best_micro_performance = dict()
             for t2 in range(1, micro_episode + 1):
@@ -128,9 +142,9 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                 sample_num = math.ceil(query_evaluate_sample_rate * len(query_to_consider))
                 # generate sample queries
                 sampled_query_list = random.sample(list(query_to_consider), k=sample_num)
-                print("sampled_query_list:", sampled_query_list)
+                logging.debug(f"sampled_query_list: {sampled_query_list}")
                 # obtain run time info by running queries within timeout
-                run_time = env.evaluate_light(sampled_query_list)
+                run_time = env.evaluate(sampled_query_list)
                 # the total time of sampled queries
                 total_run_time = sum(run_time)
                 # the default time of sampled queries
@@ -139,21 +153,21 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                 sum_default_time_of_sampled_queries = sum(default_runtime_of_sampled_queries)
                 # the relative ration of the improvement, the less of total_run_time, the better
                 light_reward = sum_default_time_of_sampled_queries / total_run_time
-                print("default_runtime_of_sampled_queries", default_runtime_of_sampled_queries)
-                print("light_action:", selected_light_actions)
-                print("light_reward:", light_reward)
+                logging.debug(f"default_runtime_of_sampled_queries {default_runtime_of_sampled_queries}")
+                logging.debug(f"light_action: {selected_light_actions}")
+                logging.debug(f"light_reward: {light_reward}")
 
                 other_default_time = sum(default_runtime[select_query] for select_query in range(nr_query) if
                                          select_query not in sampled_query_list)
                 estimate_workload_time = (other_default_time + total_run_time)
-                print("estimate whole workload time:", estimate_workload_time)
+                logging.debug(f"estimate whole workload time: {estimate_workload_time}")
                 if estimate_workload_time < best_simulation_time:
                     best_simulation_time = estimate_workload_time
                     best_configs = {"heavy": selected_heavy_action_frozen, "light": selected_light_actions}
 
                 current_time = time.time()
-                print("current global time:", (current_time - start_time))
-                print("global time for indices:", idx_build_time)
+                logging.debug(f"current global time: {(current_time - start_time)}")
+                logging.debug(f"global time for indices: {idx_build_time}")
 
                 light_root.update_statistics_with_mcts_reward(light_reward, selected_light_actions)
                 # update the best gain for each query
@@ -171,7 +185,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             # save the performance of current selected heavy action
             macro_performance_info[selected_heavy_action_frozen] = best_micro_performance
 
-        print("macro_performance_info:", macro_performance_info)
+        logging.debug(f"macro_performance_info: {macro_performance_info}")
         # sys.stdout.flush()
         # ### obtain the best macro performances info
         best_slot_performance = dict()
@@ -182,7 +196,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                         best_slot_performance[query] = query_run_time
                 else:
                     best_slot_performance[query] = query_run_time
-        print("best_slot_performance", best_slot_performance)
+        logging.debug(f"best_slot_performance {best_slot_performance}")
         # after testing the performance of each configuration
         # generate the update information based on delta improvement
         update_info_slot = []
@@ -193,7 +207,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             for i in range(len(selected_heavy_actions)):
                 if selected_heavy_actions[i] != terminate_action:
                     selected_heavy_action_frozen = frozenset(selected_heavy_actions[:i + 1])
-                    print("current selected_heavy_action_frozen:", selected_heavy_action_frozen)
+                    logging.debug(f"current selected_heavy_action_frozen: {selected_heavy_action_frozen}")
                     applicable_query_performance = macro_performance_info[selected_heavy_action_frozen]
                     # generate reward based on the difference between previous performance and current performance
                     # the query for current indices
@@ -209,27 +223,26 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
                             previous_runtime = previous_performance[query]
                         delta_improvement += (previous_runtime - current_runtime)
                     previous_performance = applicable_query_performance
-                    print("applicable_query_performance:", applicable_query_performance)
-                    print("previous_performance:", previous_performance)
+                    logging.debug(f"applicable_query_performance: {applicable_query_performance}")
+                    logging.debug("previous_performance: {previous_performance}")
                     delta_improvement = max(delta_improvement, 0)
                     update_reward.append(delta_improvement)
             # update the tree based on the simulation results
             update_info_slot.append((update_reward, [heavy_action for heavy_action in selected_heavy_actions if
                                                      heavy_action != terminate_action]))
-        print("update_info_slot:", update_info_slot)
+        logging.debug(f"update_info_slot: {update_info_slot}")
         heavy_root.update_batch(update_info_slot)
         previous_set = set(configuration_to_evaluate[evaluated_order[-1]])
-        heavy_root.print()
+        heavy_root.print_reward_info()
         end_episode_time = time.time()
-        print("current time:", (end_episode_time - start_time))
-        print("time for indices:", idx_build_time)
-        print("current best heavy action", heavy_root.best_actions())
-        t1 += delay_time
-        # sys.stdout.flush()
+        logging.debug(f"current time: {(end_episode_time - start_time)}")
+        logging.debug(f"time for indices: {idx_build_time}")
+        logging.info(f"current best heavy action: {heavy_root.best_actions()}")
+        t1 += max_delay_time
 
-    best_heavy_configs = heavy_root.best_actions()
+    best_heavy_actions = heavy_root.best_actions()
     # best frozen heavy configs
-    best_frozen_heavy_configs = frozenset(best_heavy_configs)
+    best_frozen_heavy_configs = frozenset(best_heavy_actions)
     if best_frozen_heavy_configs in light_tree_cache:
         light_root = light_tree_cache[best_frozen_heavy_configs]
     else:
@@ -238,12 +251,11 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
 
     # additional step, tuning the final index configuration
     # build the indices
-    add_action = set(best_heavy_configs) - previous_set
-    drop_action = previous_set - set(best_heavy_configs)
+    add_action = set(best_heavy_actions) - previous_set
+    drop_action = previous_set - set(best_heavy_actions)
     env.index_step(add_action, drop_action)
     micro_episode_final_tune = 50
     best_light_runtime = sum(default_runtime)
-    best_light_config_simulation = []
     for t2 in range(1, micro_episode_final_tune):
         # for the micro episode
         env.reset()
@@ -253,7 +265,7 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             # move to next state
             state = env.step_without_evaluation(selected_light_action)
         # obtain run time info by running queries within timeout
-        run_time = env.evaluate_light([query for query in range(nr_query)])
+        run_time = env.evaluate([query for query in range(nr_query)])
         # the total time of total queries
         total_run_time = sum(run_time)
         default_time = sum(default_runtime)
@@ -262,25 +274,17 @@ def run_udo_agent(driver, queries, candidate_indices, duration, heavy_horizon, l
             best_light_config_simulation = selected_light_actions
         # the relative ration of the improvement, the less of total_run_time, the better
         light_reward = default_time / total_run_time
-        print("light_action:", selected_light_actions)
-        print("light_reward:", light_reward)
+        logging.debug(f"light_action: {selected_light_actions}")
+        logging.debug(f"light_reward: {light_reward}")
         light_root.update_statistics_with_mcts_reward(light_reward, selected_light_actions)
-    best_light_configs = light_root.best_actions()
+    best_light_actions = light_root.best_actions()
     # best heavy action from tree search
-    print("best configurations during the simulation", best_configs)
-    print("best heavy action from tree search", heavy_root.best_actions())
-    print("best_light_config:", best_light_configs)
+    logging.info(f"best configurations during the simulation {best_configs}")
+    logging.info(f"best heavy action from tree search {heavy_root.best_actions()}")
+    logging.info(f"best_light_actions {best_light_actions}")
 
     final_tune_time = time.time()
-    print("end:", final_tune_time)
+    logging.info(f"end: {final_tune_time}")
 
-    print(f"Summary: Total Tuning Time {(final_tune_time - start_tune_time) / 3600} hours")
-    best_candidate_indices = [candidate_indices[config] for config in best_heavy_configs]
-    print(f"Best index configurations:")
-    for best_candidate_index in best_candidate_indices:
-        print(driver.build_index_command(best_candidate_index))
-    print(f"Best system parameters:")
-    # for light_config in best_light_configs:
-    #     print(env.retrieve_light_action_command(light_config))
-    for light_config in best_light_config_simulation:
-        print(env.retrieve_light_action_command(light_config))
+    logging.info(f"Summary: Total Tuning Time {(final_tune_time - start_tune_time) / 3600} hours")
+    env.print_action_summary(best_heavy_actions + best_light_actions)

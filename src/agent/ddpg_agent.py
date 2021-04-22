@@ -1,29 +1,30 @@
+import logging
 import random
 import time
 
 import gym
-import udo_optimization
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 
-# import matplotlib.pyplot as plt
 
-# run ddpg agent with horizon and duration time
-def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
-    env = gym.make("udo_optimization-v0", driver=driver, queries=queries, candidate_indices=candidate_indices)
+def run_ddpg_agent(driver, queries, candidate_indices, tuning_config):
+    """Run DDPG agent for universal optimization"""
+    env = gym.make("udo_optimization-v0", driver=driver, queries=queries, candidate_indices=candidate_indices,
+                   config=tuning_config)
 
     num_states = env.observation_space.shape[0]
-    print("Size of State Space ->  {}".format(num_states))
     num_actions = env.nA_index
-    print("Size of Action Space ->  {}".format(num_actions))
+    logging.debug(f"Size of State Space ->  {num_states}")
+    logging.debug(f"Size of Action Space ->  {num_actions}")
 
     upper_bound = 1
-    lower_bound = 0
+    lower_bound = -1
 
-    print("Max Value of Action ->  {}".format(upper_bound))
-    print("Min Value of Action ->  {}".format(lower_bound))
+    print(f"Max Value of Action ->  {upper_bound}")
+    print(f"Min Value of Action ->  {lower_bound}")
 
+    # the following code is from Keras RL example, https://github.com/keras-team/keras-io/blob/master/examples/rl/ddpg_pendulum.py
     class OUActionNoise:
         def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):
             self.theta = theta
@@ -179,7 +180,7 @@ def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
         noise = noise_object()
         # Adding noise to action
         sampled_actions = sampled_actions.numpy() + noise
-        print("sampled_actions:", sampled_actions)
+        logging.debug(f"sampled_actions: {sampled_actions}")
 
         # We make sure action is within bounds
         legal_action = np.clip(sampled_actions, lower_bound, upper_bound)
@@ -190,12 +191,10 @@ def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
         nr_action = len(action_weights[0])
         start_action = random.randrange(0, nr_action)
         action = 0
-        print("start_action", start_action)
+        logging.debug(f"start_action {start_action}")
+        # pick up the action which has the highest weight
         for action_idx in range(0, nr_action):
             current_action = (start_action + action_idx) % nr_action
-            # print("action_weights[action]:", action_weights[action])
-            # print("max_action_weight:", max_action_weight)
-            # print("action_weights:", action_weights[0])
             if (current_action not in previous_actions) and (action_weights[0][current_action] > max_action_weight):
                 max_action_weight = action_weights[0][current_action]
                 action = current_action
@@ -224,7 +223,6 @@ def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
     critic_optimizer = tf.keras.optimizers.Adam(critic_lr)
     actor_optimizer = tf.keras.optimizers.Adam(actor_lr)
 
-    total_episodes = 10000
     # Discount factor for future rewards
     gamma = 0.99
     # Used to update target networks
@@ -233,8 +231,8 @@ def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
     buffer = Buffer(50000, 64)
 
     # set the horizon
-    env.horizon = horizon
-    duration_in_seconds = duration * 3600
+    env.horizon = tuning_config['horizon']
+    duration_in_seconds = tuning_config['duration'] * 3600
 
     # To store reward history of each episode
     ep_reward_list = []
@@ -244,33 +242,27 @@ def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
     start_time = time.time()
     current_time = time.time()
 
-    # Takes about 4 min to train
-    # for ep in range(total_episodes):
     ep = 0
     while (current_time - start_time) < duration_in_seconds:
-
+        # start a new episode
         prev_state = env.reset()
         episodic_reward = 0
-
         previous_actions = []
         while True:
             # Uncomment this to see the Actor in action
-            # But not in a python notebook.
-            # env.render()
-
             tf_prev_state = tf.expand_dims(tf.convert_to_tensor(prev_state), 0)
-
+            # select action according to policy
             action = policy(tf_prev_state, ou_noise, previous_actions)
             previous_actions.append(action)
-            # Recieve state and reward from environment.
+            # receive state and reward from environment.
             state, reward, done, info = env.step(action)
 
             buffer.record((prev_state, action, reward, state))
             episodic_reward += reward
 
             current_time = time.time()
-            print("episode:", ep)
-            print("evaluate duration:", (current_time - start_time))
+            logging.info(f"episode: {ep}")
+            logging.info(f"evaluate duration: {(current_time - start_time)}")
             ep += 1
 
             buffer.learn()
@@ -287,19 +279,6 @@ def run_ddpg_agent(driver, queries, candidate_indices, duration, horizon):
 
         # Mean of last 40 episodes
         avg_reward = np.mean(ep_reward_list[-40:])
-        print("Episode * {} * Avg Reward is ==> {}".format(ep, avg_reward))
+        logging.info(f"Episode * {ep} * Avg Reward is ==> {avg_reward}")
         avg_reward_list.append(avg_reward)
-
-    # Plotting graph
-    # Episodes versus Avg. Rewards
-    # plt.plot(avg_reward_list)
-    # plt.xlabel("Episode")
-    # plt.ylabel("Avg. Epsiodic Reward")
-    # plt.show()
-
-    # Save the weights
-    # actor_model.save_weights("pendulum_actor.h5")
-    # critic_model.save_weights("pendulum_critic.h5")
-    #
-    # target_actor.save_weights("pendulum_target_actor.h5")
-    # target_critic.save_weights("pendulum_target_critic.h5")
+        env.print_state_summary(env.best_state)
