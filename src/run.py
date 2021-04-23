@@ -63,9 +63,9 @@ udo_parser.add_argument('-horizon', default=5, type=int,
 udo_parser.add_argument('-heavy_horizon', default=3, type=int,
                         help='the number horizon for heavy parameters in UDO')
 # mcts algorithm
-udo_parser.add_argument('-rl_update', choices=('RAVE', 'MCTS'),
+udo_parser.add_argument('-rl_update', choices=('RAVE', 'MCTS'), default='RAVE',
                         help='the update policy of UDO tree search')
-udo_parser.add_argument('-rl_select', choices=('UCB1', 'UCBV'),
+udo_parser.add_argument('-rl_select', choices=('UCB1', 'UCBV'), default='UCBV',
                         help='the selection policy of UDO tree search')
 udo_parser.add_argument('-rl_reward', choices=('delta', 'accumulate'),
                         help='the reward of reinforcement learning agent')
@@ -196,6 +196,8 @@ if args['agent'] == 'udo':
     tuning_config['heavy_horizon'] = args['heavy_horizon']
     tuning_config['light_horizon'] = horizon - int(args['heavy_horizon'])
     tuning_config['rl_max_delay_time'] = args['rl_max_delay_time']
+    tuning_config['rl_update'] = args['rl_update']
+    tuning_config['rl_select'] = args['rl_select']
     run_udo_agent(driver=driver, queries=queries, candidate_indices=candidate_indices, tuning_config=tuning_config)
 elif args['agent'] == 'udo-s':
     # run simplified udo

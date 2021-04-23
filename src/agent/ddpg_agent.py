@@ -21,8 +21,8 @@ def run_ddpg_agent(driver, queries, candidate_indices, tuning_config):
     upper_bound = 1
     lower_bound = -1
 
-    print(f"Max Value of Action ->  {upper_bound}")
-    print(f"Min Value of Action ->  {lower_bound}")
+    logging.debug(f"Max Value of Action ->  {upper_bound}")
+    logging.debug(f"Min Value of Action ->  {lower_bound}")
 
     # the following code is from Keras RL example, https://github.com/keras-team/keras-io/blob/master/examples/rl/ddpg_pendulum.py
     class OUActionNoise:
