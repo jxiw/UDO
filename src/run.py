@@ -75,11 +75,11 @@ udo_parser.add_argument('-rl_max_delay_time', type=int, default=5,
                         help='the delay selection policy')
 
 # tuning configuration
-udo_parser.add_argument('-sample_rate', type=int,
+udo_parser.add_argument('-sample_rate', type=int, default="1",
                         help='sampled rate from workload')
-udo_parser.add_argument('-default_query_time_out', type=int,
+udo_parser.add_argument('-default_query_time_out', type=int, default="5",
                         help='default timeout in seconds for each query')
-udo_parser.add_argument('-time_out_ratio', type=float,
+udo_parser.add_argument('-time_out_ratio', type=float, default="1.1",
                         help='timeout ratio respect to default time')
 
 # load json file
@@ -192,6 +192,7 @@ if args['agent'] == 'udo':
         print("Please specific the step of heavy configurations")
         exit()
     # run udo
+    print(tuning_config)
     horizon = args['horizon']
     tuning_config['heavy_horizon'] = args['heavy_horizon']
     tuning_config['light_horizon'] = horizon - int(args['heavy_horizon'])

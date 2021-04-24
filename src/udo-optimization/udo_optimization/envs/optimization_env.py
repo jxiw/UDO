@@ -50,6 +50,7 @@ class OptimizationEnv(gym.Env):
         # initial index action tuning space
         self.candidate_indices = candidate_indices
         self.index_candidate_num = len(self.candidate_indices)
+        print("dfdfd")
         logging.debug(f"the total number of index candidates is {self.index_candidate_num}")
 
         # initial system parameter space
