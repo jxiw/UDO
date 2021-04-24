@@ -35,6 +35,7 @@ from optimizer import order_optimizer
 
 def run_udo_agent(driver, queries, candidate_indices, tuning_config):
     duration_in_seconds = tuning_config['duration'] * 3600
+
     env = gym.make('udo_optimization-v0', driver=driver, queries=queries, candidate_indices=candidate_indices,
                    config=tuning_config)
 
@@ -43,7 +44,7 @@ def run_udo_agent(driver, queries, candidate_indices, tuning_config):
     index_to_applicable_queries = env.index_to_applicable_queries
 
     start_tune_time = time.time()
-    logging.info(f"start: {start_tune_time}")
+    logging.debug(f"start time: {start_tune_time}")
 
     optimizer = order_optimizer.OrderOptimizer(index_card_info)
 

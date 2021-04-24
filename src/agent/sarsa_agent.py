@@ -1,13 +1,13 @@
-import gym
 import logging
 
 import gym
+import udo_optimization
+
 from rl.agents import SARSAAgent
 from rl.policy import BoltzmannQPolicy
 from tensorflow.keras.layers import Dense, Activation, Flatten
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
-
 
 def run_sarsa_agent(driver, queries, candidate_indices, tuning_config):
     # Get the environment and extract the number of actions.

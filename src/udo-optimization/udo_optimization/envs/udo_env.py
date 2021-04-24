@@ -31,7 +31,7 @@ import numpy as np
 from gym import spaces
 
 
-class OptimizationEnv(gym.Env):
+class UDOEnv(gym.Env):
     """the environment of DBMS optimizer"""
 
     def __init__(self, driver, queries, candidate_indices, config):
@@ -40,17 +40,17 @@ class OptimizationEnv(gym.Env):
             driver: DBMS connector
             queries: queries to optimize
             candidate_indices: candidate indices to select
+            config: the configuration for tuning
 
         Return: the environment
         """
-        super(OptimizationEnv, self).__init__()
+        super(UDOEnv, self).__init__()
 
         self.driver = driver
 
         # initial index action tuning space
         self.candidate_indices = candidate_indices
         self.index_candidate_num = len(self.candidate_indices)
-        print("dfdfd")
         logging.debug(f"the total number of index candidates is {self.index_candidate_num}")
 
         # initial system parameter space
@@ -64,13 +64,14 @@ class OptimizationEnv(gym.Env):
         self.nA_parameter = sum(self.parameter_candidate)
         self.nA = int(self.nA_index + self.nA_parameter)
         self.action_space = spaces.Discrete(self.nA)
-        # print(self.nA)
+        logging.debug(f"action space {self.nA}")
 
         # state space
         self.nS_index = int(math.pow(2, self.index_candidate_num))
         self.nS_parameter = np.prod(self.parameter_candidate)
-        self.nS = int(self.nS_index * self.nS_parameter)
-        # print(self.nS)
+        # self.nS = self.nS_index * self.nS_parameter
+        logging.debug(f"index state space {self.nS_index}")
+        logging.debug(f"parameter state space {self.nS_parameter}")
 
         # our transition matrix is a deterministic matrix
         # the observation space
@@ -99,18 +100,22 @@ class OptimizationEnv(gym.Env):
             map(lambda x: list(map(lambda y: query_to_id[y], x[3])), self.candidate_indices))
 
         # the default run time
-        default_time_out_per_query = config['default_query_time_out']
-        time_out_ratio = config['time_out_ratio']
+        default_time_out_per_query = 6
+        # config['default_query_time_out']
+        time_out_ratio = 1.1
+        # config['time_out_ratio']
         input_runtime_out = [default_time_out_per_query] * self.nr_query
         self.default_runtime = self.driver.run_queries_with_timeout(self.query_sqls, input_runtime_out)
         self.runtime_out = [
             time_out_ratio * query_runtime if query_runtime < default_time_out_per_query
             else default_time_out_per_query for query_runtime in self.default_runtime]
 
-        self.sample_rate = config['sample_rate']
+        self.sample_rate = 1
+        # config['sample_rate']
         self.best_state = None
         self.best_run_performance = sum(self.default_runtime)
-        logging.debug(f"timeout for queries {self.runtime_out}")
+        logging.info("start to tuning your database")
+        logging.info(f"timeout for queries {self.runtime_out}")
 
     def state_decoder(self, num):
         """decode a vector to a state number"""
@@ -246,7 +251,7 @@ class OptimizationEnv(gym.Env):
         for remove_action in remove_actions:
             index_to_drop = self.candidate_indices[remove_action]
             # drop index action
-            print(f"drop index {index_to_drop}")
+            logging.debug(f"drop index {index_to_drop}")
             self.driver.drop_index(index_to_drop)
 
     def index_add_step(self, add_action):

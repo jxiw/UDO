@@ -86,7 +86,6 @@ class PostgresDriver(AbstractDriver):
         # reset the timeout to the default configuration
         self.cursor.execute("set statement_timeout=0;")
         self.cursor.execute("drop view if exists REVENUE0;")
-        print(run_time)
         return run_time
 
     def run_queries_without_timeout(self, query_list):

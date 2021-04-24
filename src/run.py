@@ -23,8 +23,10 @@
 
 import argparse
 import json
+import logging
 import os
 import random
+import sys
 
 import numpy as np
 
@@ -34,6 +36,11 @@ from agent.udo_agent import run_udo_agent
 from agent.udo_simplifed_agent import run_simplifed_udo_agent
 from drivers.mysqldriver import MysqlDriver
 from drivers.postgresdriver import PostgresDriver
+
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(funcName)s:%(lineno)03d] %(levelname)-5s: %(message)s",
+                    datefmt="%m-%d-%Y %H:%M:%S",
+                    stream=sys.stdout)
 
 udo_parser = argparse.ArgumentParser(description='UDO optimizer.')
 # database setting

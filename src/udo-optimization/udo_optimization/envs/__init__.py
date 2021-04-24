@@ -1,1 +1,1 @@
-from udo_optimization.envs.optimization_env import OptimizationEnv
+from udo_optimization.envs.udo_env import UDOEnv
