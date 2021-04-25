@@ -27,7 +27,7 @@
       -queries QUERIES      queries
     ```
 
-5. Download the TPC-H test dataset and query from https://drive.google.com/open?id=12MbOqpZwXmFfil48D_yXbJ6wVdYJanmX&authuser=jw2544%40cornell.edu&usp=drive_fs
+5. Download the TPC-H test dataset and query from https://drive.google.com/open?id=12MbOqpZwXmFfil48D_yXbJ6wVdYJanmX
 
 6. Run agents 
 
