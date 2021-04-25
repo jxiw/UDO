@@ -82,12 +82,13 @@ class UDOEnv(gym.Env):
 
         # the MDP init setting
         # index build time
-        self.accumulated_index_time = 0
+
         # horizon
-        self.horizon = 9
+        self.horizon = config['horizon']
+        self._step = 0
         # current step
-        self.cr_step = 0
-        # start time
+        # for runtime statistics
+        self.accumulated_index_time = 0
         self.start_time = time.time()
 
         # get all queries in the given benchmark
@@ -337,9 +338,9 @@ class UDOEnv(gym.Env):
             self.best_run_performance = estimate_workload_time
             self.best_state = self.current_state
 
-        self.cr_step += 1
-        if self.cr_step == self.horizon:
-            self.cr_step = 0
+        self._step += 1
+        if self._step == self.horizon:
+            self._step = 0
             return next_state, reward, True, {}
         else:
             return next_state, reward, False, {}
