@@ -1,4 +1,7 @@
 # UDO Quickstart
+
+## Install from github
+
 1. Download UDO package from UDO repository.
 
     ```
@@ -10,7 +13,7 @@
 3. Install UDO Gym environment
 
     ```
-    cd src/udo-optimization/
+    cd UDO/udo-optimization/
     python3 -m pip install -e .
     ```
 
@@ -27,9 +30,30 @@
       -queries QUERIES      queries
     ```
 
-5. Download the TPC-H test dataset and query from https://drive.google.com/open?id=12MbOqpZwXmFfil48D_yXbJ6wVdYJanmX
+## Install from PIP
 
-6. Run agents 
+Use the `pip install UDO-DB==0.01` to install package.
+
+## TPC-H test
+
+The TPC-H dataset and query are available in https://drive.google.com/open?id=12MbOqpZwXmFfil48D_yXbJ6wVdYJanmX
+
+## Running 
+
+1. Optional, using the UDO tool to extract indexes. The output format should be `index name;table;columns`, which is the index format required by UDO.
+
+    ```
+    usage: extract_index.py [-h] [-db_schema DB_SCHEMA] [-queries QUERIES]
+    
+    UDO index candidate generator.
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -db_schema DB_SCHEMA  the database schmea to optimizes
+      -queries QUERIES      queries
+    ```
+
+2. Run agents 
 
    ```
     usage: run.py [-h] [-system {mysql,postgres}] [-db DB] [-username USERNAME] [-password PASSWORD] [-queries QUERIES]
@@ -82,11 +106,11 @@ For example
 for TPC-H with scaling factor 1
 
    ```
-   python3 ../src/run.py -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 6
+   python3 UDO/run.py -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 6
    ```
 
 for TPC-H with scaling factor 10
 
    ```
-   python3 ../src/run.py -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 18
+   python3 UDO/run.py -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 18
    ```
