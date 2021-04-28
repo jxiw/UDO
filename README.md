@@ -40,7 +40,7 @@
 
 ## TPC-H test
 
-The TPC-H dataset and query are available in https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47
+The TPC-H schema, dataset and queries are available in https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47
 
 ## Running 
 
@@ -56,6 +56,8 @@ The TPC-H dataset and query are available in https://drive.google.com/drive/fold
       -db_schema DB_SCHEMA  the database schmea to optimizes
       -queries QUERIES      queries
     ```
+
+2. ```echo "PATH=$PATH:/home/ubuntu/.local/bin" >> ~/.bashrc```
 
 2. Run agents 
 
