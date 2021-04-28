@@ -36,7 +36,7 @@ Use the `pip install UDO-DB==0.01` to install package.
 
 ## TPC-H test
 
-The TPC-H dataset and query are available in https://drive.google.com/open?id=12MbOqpZwXmFfil48D_yXbJ6wVdYJanmX
+The TPC-H dataset and query are available in https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47
 
 ## Running 
 
