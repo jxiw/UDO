@@ -8,7 +8,9 @@
     git clone git@github.com:OVSS/UDO.git
     ```
 
-2. Install the required packages `python3 -m pip install -r requirements.txt`
+2. Install the mandatory DBMS packages. `bash ./install.sh`
+
+3. Install the required packages `python3 -m pip install -r requirements.txt`
 
 3. Install UDO Gym environment
 
@@ -32,7 +34,9 @@
 
 ## Install from PIP
 
-Use the `pip install UDO-DB==0.01` to install package.
+1. Install the mandatory DBMS packages. `bash ./install.sh` in case of Postgres or MySQL are not installed.
+
+2. Use the `python3 -m pip install UDO-DB` to install package.
 
 ## TPC-H test
 
