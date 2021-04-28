@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>UDO</title>
+    <title>UDO - The Universal Database Optimizer</title>
 </head>
 <body>
 
+    <p>Typically, database tuning tools focus on one type of decision. Some tools recommend database indexes, others optimize system configuration parameters such as the buffer pool size. With UDO (Universal Database Optimizer), we present a tool that optimizes all of those tuning choices by one unified approach.</p>
+    
+    <p>UDO uses reinforcement learning to converge to optimal tuning choices. Given a list of index candidates and tuning parameters, it explores interesting options and evaluates performance on an example workload. We completely bypass simplifying cost models and rely on observations, collected during optimization, alone. In doing so, we prioritize optimization quality over optimization speed: UDO may take hours to optimize a given workload but it converges to optimal results.</p>
+    
+    <p>In the current version, UDO tunes Postgres for given SQL workloads. It can be installed via pip (see <a href="https://pypi.org/project/UDO-DB/">here</a>). See the README file for a quick intro (using UDO to optimize for TPC-H).
+    
+    <p>UDO is supported by <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1910830&HistoricalAwards=false">NSF Grant 1910830</a>.</p>
+        
 </body>
 </html>
