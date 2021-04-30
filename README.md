@@ -1,4 +1,5 @@
 # UDO Quickstart
+The python version of UDO is `python3`
 
 ## Install from github
 
@@ -62,7 +63,7 @@ The TPC-H schema, dataset and queries are available in https://drive.google.com/
 2. Run agents 
 
    ```
-    usage: run.py [-h] [-system {mysql,postgres}] [-db DB] [-username USERNAME] [-password PASSWORD] [-queries QUERIES]
+    usage: python3 -m udo [-h] [-system {mysql,postgres}] [-db DB] [-username USERNAME] [-password PASSWORD] [-queries QUERIES]
               [-indices INDICES] [-sys_params SYS_PARAMS] [-duration DURATION] [-agent {udo,udo-s,ddpg,sarsa}]
               [-horizon HORIZON] [-heavy_horizon HEAVY_HORIZON] [-rl_update {RAVE,MCTS}] [-rl_select {UCB1,UCBV}]
               [-rl_reward {delta,accumulate}] [-rl_delay {UCB,Exp3}] [-rl_max_delay_time RL_MAX_DELAY_TIME]
@@ -112,11 +113,11 @@ For example
 for TPC-H with scaling factor 1
 
    ```
-   python3 UDO/run.py -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 6
+   python3 -m udo -system postgres -db tpch_sf1 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 6
    ```
 
 for TPC-H with scaling factor 10
 
    ```
-   python3 UDO/run.py -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 18
+   python3 -m udo -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 18
    ```

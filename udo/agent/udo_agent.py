@@ -28,9 +28,9 @@ import time
 
 import gym
 
-from mcts.mcts_node import SpaceType
-from mcts.uct_node import uct_node
-from optimizer import order_optimizer
+from udo.mcts.mcts_node import SpaceType
+from udo.mcts.uct_node import uct_node
+from udo.optimizer import order_optimizer
 
 
 def run_udo_agent(driver, queries, candidate_indices, tuning_config):

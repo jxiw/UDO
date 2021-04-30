@@ -27,8 +27,8 @@ import time
 import gym
 import udo_optimization
 
-from mcts.mcts_node import SpaceType
-from mcts.uct_node import uct_node
+from udo.mcts.mcts_node import SpaceType
+from udo.mcts.uct_node import uct_node
 
 def run_simplifed_udo_agent(driver, queries, candidate_indices, tuning_config):
     start_tune_time = time.time()

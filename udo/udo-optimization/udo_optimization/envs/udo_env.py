@@ -30,7 +30,6 @@ import gym
 import numpy as np
 from gym import spaces
 
-
 class UDOEnv(gym.Env):
     """the environment of DBMS optimizer"""
 
