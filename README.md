@@ -1,47 +1,44 @@
 # UDO Quickstart
-The python version of UDO is `python3`
 
-## Install from github
+The following installation procedure was tested on Ubuntu 20.04 with Python 3. More precisely, we used a t3.medium EC2 instance and the "Ubuntu Server 20.04 LTS (HVM), SSD Volume Type" AMI.
 
-1. Download UDO package from UDO repository.
+## Installation from GitHub
 
-    ```
-    git clone git@github.com:OVSS/UDO.git
-    ```
-
-2. Install the mandatory DBMS packages. `bash ./install.sh`
-
-3. Install the required packages `python3 -m pip install -r requirements.txt`
-
-3. Install UDO Gym environment
+1. Download UDO package from UDO repository and switch to UDO directory.
 
     ```
-    cd UDO/udo-optimization/
-    python3 -m pip install -e .
+    git clone https://[username]@github.com/OVSS/UDO.git
+    cd UDO
     ```
 
-4. Optional, using the UDO tool to extract indexes. The output format should be `index name;table;columns`, which is the index format required by UDO.
+2. Install DBMS packages. `bash ./install.sh`
+
+3. Install UDO packages.
 
     ```
-    usage: extract_index.py [-h] [-db_schema DB_SCHEMA] [-queries QUERIES]
-    
-    UDO index candidate generator.
-    
-    optional arguments:
-      -h, --help            show this help message and exit
-      -db_schema DB_SCHEMA  the database schmea to optimizes
-      -queries QUERIES      queries
+    cd udo
+    python3 -m pip install -r requirement.txt`
     ```
 
-## Install from PIP
+4. Install UDO Gym environment. `python3 -m pip install -e .`
 
-1. Install the mandatory DBMS packages. `bash ./install.sh` in case of Postgres or MySQL are not installed.
+## Installation via PIP
 
-2. Use the `python3 -m pip install UDO-DB` to install package.
+1. Install DBMS packages via `bash ./install.sh` if Postgres and MySQL are not installed.
 
-## TPC-H test
+2. Use `python3 -m pip install UDO-DB` to install packages.
 
-The TPC-H schema, dataset and queries are available in https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47
+## Test UDO on TPC-H
+
+The TPC-H schema, dataset, and queries are available at https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47. 
+
+1. To download data from Google Drive, install gdown via `python3 -m pip install gdown`.
+
+2. Download TPC-H .zip file using `/home/ubuntu/.local/bin/gdown https://drive.google.com/uc?id=1IgzHMOc75Km9h-FLMepV-t9lrQhWGTwt`.
+
+3. Install unzip via `sudo apt install unzip` and use it to extract files via `unzip TPC-H.zip`
+
+4. 
 
 ## Running 
 
