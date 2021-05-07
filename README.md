@@ -28,7 +28,7 @@ The following installation procedure was tested on Ubuntu 20.04 with Python 3. M
 
 2. Use `python3 -m pip install UDO-DB` to install packages.
 
-## Test UDO on TPC-H
+## Prepare TPC-H Database
 
 The TPC-H schema, dataset, and queries are available at https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47. 
 
@@ -38,9 +38,13 @@ The TPC-H schema, dataset, and queries are available at https://drive.google.com
 
 3. Install unzip via `sudo apt install unzip` and use it to extract files via `unzip TPC-H.zip`
 
-4. 
+4. Create TPC-H database via `sudo -u postgres createdb tpch_sf10`.
 
-## Running 
+5. Create TPC-H database schema via `sudo -u postgres psql tpch_sf10 < tpch_schema.sql`.
+
+6. Load TPC-H data via `sudo -u postgres psql tpch_sf10 < tpch_sf10_data.sql`.
+
+## Use UDO to Tune Postgres for TPC-H
 
 1. Optional, using the UDO tool to extract indexes. The output format should be `index name;table;columns`, which is the index format required by UDO.
 
