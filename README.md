@@ -6,7 +6,7 @@ The python version of UDO is `python3`
 1. Download UDO package from UDO repository.
 
     ```
-    git clone git@github.com:OVSS/UDO.git
+    git clone https://[username]@github.com/OVSS/UDO.git
     ```
 
 2. Install the mandatory DBMS packages. `bash ./install.sh`
