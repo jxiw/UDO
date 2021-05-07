@@ -1,26 +1,28 @@
 # UDO Quickstart
-The python version of UDO is `python3`
+
+The following installation procedure was tested on Ubuntu 20.04 with Python 3. More precisely, we used a t3.medium EC2 instance and the "Ubuntu Server 20.04 LTS (HVM), SSD Volume Type" AMI.
 
 ## Install from github
 
-1. Download UDO package from UDO repository.
+1. Download UDO package from UDO repository and switch to UDO directory.
 
     ```
     git clone https://[username]@github.com/OVSS/UDO.git
+    cd UDO
     ```
 
-2. Install the mandatory DBMS packages. `bash ./install.sh`
+2. Install DBMS packages. `bash ./install.sh`
 
-3. Install the required packages `python3 -m pip install -r requirements.txt`
-
-3. Install UDO Gym environment
+3. Install UDO packages.
 
     ```
-    cd UDO/udo-optimization/
-    python3 -m pip install -e .
+    cd udo
+    python3 -m pip install -r requirement.txt`
     ```
 
-4. Optional, using the UDO tool to extract indexes. The output format should be `index name;table;columns`, which is the index format required by UDO.
+4. Install UDO Gym environment. `python3 -m pip install -e .`
+
+5. Optional, use the UDO tool to extract index candidates from a database schema. The output format is `index name;table;columns` (which can be parsed by UDO).
 
     ```
     usage: extract_index.py [-h] [-db_schema DB_SCHEMA] [-queries QUERIES]
@@ -35,9 +37,9 @@ The python version of UDO is `python3`
 
 ## Install from PIP
 
-1. Install the mandatory DBMS packages. `bash ./install.sh` in case of Postgres or MySQL are not installed.
+1. Install DBMS packages via `bash ./install.sh` if Postgres and MySQL are not installed.
 
-2. Use the `python3 -m pip install UDO-DB` to install package.
+2. Use `python3 -m pip install UDO-DB` to install packages.
 
 ## TPC-H test
 
@@ -60,7 +62,7 @@ The TPC-H schema, dataset and queries are available in https://drive.google.com/
 
 2. ```echo "PATH=$PATH:/home/ubuntu/.local/bin" >> ~/.bashrc```
 
-2. Run agents 
+3. Run agents 
 
    ```
     usage: python3 -m udo [-h] [-system {mysql,postgres}] [-db DB] [-username USERNAME] [-password PASSWORD] [-queries QUERIES]
