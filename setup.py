@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='udo_db',
-      version='0.18',
+      version='0.19',
       description='a universal optimizer for database system',
       author='Junxiong Wang',
       author_email='chuangzhetianxia@gmail.coma',

@@ -238,7 +238,7 @@ def run_udo_agent(driver, queries, candidate_indices, tuning_config):
         end_episode_time = time.time()
         logging.debug(f"current time: {(end_episode_time - start_time)}")
         logging.debug(f"time for indices: {idx_build_time}")
-        logging.info(f"current best heavy action: {heavy_root.best_actions()}")
+        logging.info(f"current best heavy action: {env.print_action_summary(heavy_root.best_actions())}")
         t1 += max_delay_time
 
     best_heavy_actions = heavy_root.best_actions()

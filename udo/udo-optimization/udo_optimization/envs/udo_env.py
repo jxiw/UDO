@@ -30,6 +30,7 @@ import gym
 import numpy as np
 from gym import spaces
 
+
 class UDOEnv(gym.Env):
     """the environment of DBMS optimizer"""
 
@@ -77,7 +78,7 @@ class UDOEnv(gym.Env):
         observation_space_array = np.concatenate([np.full(self.index_candidate_num, 1), self.parameter_candidate])
         self.observation_space = spaces.MultiDiscrete(observation_space_array)
         self.current_state = np.concatenate(
-            [np.zeros(self.index_candidate_num), np.zeros(self.parameter_candidate_num)])
+            [np.zeros(self.index_candidate_num, dtype=int), np.zeros(self.parameter_candidate_num, dtype=int)])
 
         # the MDP init setting
         # index build time
@@ -100,10 +101,8 @@ class UDOEnv(gym.Env):
             map(lambda x: list(map(lambda y: query_to_id[y], x[3])), self.candidate_indices))
 
         # the default run time
-        default_time_out_per_query = 6
-        # config['default_query_time_out']
-        time_out_ratio = 1.1
-        # config['time_out_ratio']
+        default_time_out_per_query = config['default_query_time_out']
+        time_out_ratio = config['time_out_ratio']
         input_runtime_out = [default_time_out_per_query] * self.nr_query
         self.default_runtime = self.driver.run_queries_with_timeout(self.query_sqls, input_runtime_out)
         self.runtime_out = [
@@ -356,9 +355,9 @@ class UDOEnv(gym.Env):
                     index_drop_sql = self.candidate_indices[i]
                     self.driver.drop_index(index_drop_sql)
             # set the parameter to default value, the first value
-            self.driver.change_system_parameter(np.zeros(self.parameter_candidate_num))
+            self.driver.change_system_parameter(np.zeros(self.parameter_candidate_num, dtype=int))
         self.current_state = np.concatenate(
-            [np.zeros(self.index_candidate_num), np.zeros(self.parameter_candidate_num)])
+            [np.zeros(self.index_candidate_num, dtype=int), np.zeros(self.parameter_candidate_num, dtype=int)])
         return self.current_state
 
     def print_state_summary(self, state):
@@ -375,11 +374,13 @@ class UDOEnv(gym.Env):
 
     def print_action_summary(self, actions):
         """print action summary given actions"""
-        logging.info(f"Best index configurations:")
         best_indices = [self.candidate_indices[action_idx] for action_idx in actions if action_idx < self.nA_index]
         best_sys_actions = [action_idx for action_idx in actions if action_idx >= self.nA_index]
-        for best_index in best_indices:
-            logging.info(self.driver.build_index_command(best_index))
-        logging.info(f"Best system parameters:")
-        for sys_action in best_sys_actions:
-            logging.info(self.retrieve_light_action_command(sys_action))
+        if best_indices is not None and len(best_indices) > 0:
+            logging.info(f"Best index configurations:")
+            for best_index in best_indices:
+                logging.info(self.driver.build_index_command(best_index))
+        if best_sys_actions is not None and len(best_sys_actions) > 0:
+            logging.info(f"Best system parameters:")
+            for sys_action in best_sys_actions:
+                logging.info(self.retrieve_light_action_command(sys_action))

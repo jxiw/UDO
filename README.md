@@ -60,7 +60,7 @@ The TPC-H schema, dataset and queries are available in https://drive.google.com/
 
 2. ```echo "PATH=$PATH:/home/ubuntu/.local/bin" >> ~/.bashrc```
 
-2. Run agents 
+3. Run agents after installing udo from pip
 
    ```
     usage: python3 -m udo [-h] [-system {mysql,postgres}] [-db DB] [-username USERNAME] [-password PASSWORD] [-queries QUERIES]

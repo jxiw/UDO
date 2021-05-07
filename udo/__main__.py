@@ -115,6 +115,9 @@ if __name__ == "__main__":
                 with open(os.path.join(args['queries'], file_name)) as f:
                     content = f.read()
                     queries[file_name] = content
+    else:
+        print("please specify queries")
+        exit()
         # print(constants.QUERIES)
 
     # init indices with external files
@@ -127,13 +130,9 @@ if __name__ == "__main__":
             for index_str in indices:
                 index_information = index_str.split(";")
                 candidate_indices.append((index_information[0], index_information[1], index_information[2]))
-
-    dbms_conf = {
-        "host": "127.0.0.1",
-        "db": args['db'],
-        "user": args['username'],
-        "passwd": args['password'],
-    }
+    else:
+        print("please specify candidate indices")
+        exit()
 
     # check the validate of configurations file
     if not args['system'] or not args['db']:
@@ -147,6 +146,13 @@ if __name__ == "__main__":
     if not args['sys_params']:
         print("Please specify the system parameters")
         exit()
+
+    dbms_conf = {
+        "host": "127.0.0.1",
+        "db": args['db'],
+        "user": args['username'],
+        "passwd": args['password'],
+    }
 
     with open(args['sys_params'], 'rt') as f:
         sys_params = json.load(f)

@@ -262,9 +262,6 @@ def run_ddpg_agent(driver, queries, candidate_indices, tuning_config):
             buffer.record((prev_state, action, reward, state))
             episodic_reward += reward
 
-            current_time = time.time()
-            logging.info(f"episode: {ep}")
-            logging.info(f"evaluate duration: {(current_time - start_time)}")
             ep += 1
 
             buffer.learn()
@@ -273,6 +270,7 @@ def run_ddpg_agent(driver, queries, candidate_indices, tuning_config):
 
             # End this episode when `done` is True
             if done:
+                current_time = time.time()
                 break
 
             prev_state = state
@@ -283,4 +281,6 @@ def run_ddpg_agent(driver, queries, candidate_indices, tuning_config):
         avg_reward = np.mean(ep_reward_list[-40:])
         logging.info(f"Episode * {ep} * Avg Reward is ==> {avg_reward}")
         avg_reward_list.append(avg_reward)
+        logging.info(f"episode: {ep}")
+        logging.info(f"evaluate duration: {(current_time - start_time)}")
         env.print_state_summary(env.best_state)

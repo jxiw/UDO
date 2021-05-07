@@ -39,9 +39,9 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, tuning_config):
     init_state = env.state_decoder(0)
     root = uct_node(0, 0, tuning_config['horizon'], init_state, env, space_type=SpaceType.All)
 
-    all_queries = list(queries.values())
     start_time = time.time()
     current_time = time.time()
+    query_keys = range(len(queries))
 
     ep = 0
     logging.debug(f"start: {time.time()}")
@@ -55,7 +55,7 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, tuning_config):
             # move to next state
             state = env.step_without_evaluation(selected_light_action)
         # obtain run time info by running queries within timeout
-        run_time = env.evaluate(all_queries)
+        run_time = env.evaluate(query_keys)
         # the total time of sampled queries
         total_run_time = sum(run_time)
         # the default time of sampled queries
@@ -69,6 +69,8 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, tuning_config):
         current_best = root.best_actions()
         logging.debug(f"current best action: {current_best}")
         logging.debug(f"runtime: {total_run_time}")
+        logging.info(f"current best configurations:")
+        logging.info(env.print_action_summary(root.best_actions()))
         # add more episode
         ep += 1
     final_tune_time = time.time()
