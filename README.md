@@ -2,7 +2,7 @@
 
 The following installation procedure was tested on Ubuntu 20.04 with Python 3. More precisely, we used a t3.medium EC2 instance and the "Ubuntu Server 20.04 LTS (HVM), SSD Volume Type" AMI.
 
-## Install from github
+## Installation from GitHub
 
 1. Download UDO package from UDO repository and switch to UDO directory.
 
@@ -22,28 +22,23 @@ The following installation procedure was tested on Ubuntu 20.04 with Python 3. M
 
 4. Install UDO Gym environment. `python3 -m pip install -e .`
 
-5. Optional, use the UDO tool to extract index candidates from a database schema. The output format is `index name;table;columns` (which can be parsed by UDO).
-
-    ```
-    usage: extract_index.py [-h] [-db_schema DB_SCHEMA] [-queries QUERIES]
-    
-    UDO index candidate generator.
-    
-    optional arguments:
-      -h, --help            show this help message and exit
-      -db_schema DB_SCHEMA  the database schmea to optimizes
-      -queries QUERIES      queries
-    ```
-
-## Install from PIP
+## Installation via PIP
 
 1. Install DBMS packages via `bash ./install.sh` if Postgres and MySQL are not installed.
 
 2. Use `python3 -m pip install UDO-DB` to install packages.
 
-## TPC-H test
+## Test UDO on TPC-H
 
-The TPC-H schema, dataset and queries are available in https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47
+The TPC-H schema, dataset, and queries are available at https://drive.google.com/drive/folders/123pwHaoz8C1dakvUef8AjKqci3_JNG47. 
+
+1. To download data from Google Drive, install gdown via `python3 -m pip install gdown`.
+
+2. Download TPC-H .zip file using `/home/ubuntu/.local/bin/gdown https://drive.google.com/uc?id=1IgzHMOc75Km9h-FLMepV-t9lrQhWGTwt`.
+
+3. Install unzip via `sudo apt install unzip` and use it to extract files via `unzip TPC-H.zip`
+
+4. 
 
 ## Running 
 
