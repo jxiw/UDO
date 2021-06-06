@@ -79,5 +79,5 @@ class OrderOptimizer:
                         min_pos = insert_pos
                 # update the order
                 order.insert(min_pos + 1, selected_action_idx)
-            logging.debug("min cost order ", order)
+            logging.debug(f"min cost order: {order}")
             return order

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='udo_optimization',
-    version='0.0.2',
+    version='0.0.3',
     description='gym environment for UDO',
     author='Junxiong Wang',
     author_email='chuangzhetianxia@gmail.coma',

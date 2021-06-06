@@ -1,7 +1,8 @@
 sudo apt -y update
-sudo apt -y install mysql-server
+# install mysql
+sudo apt -y install mysql-server libmysqlclient-dev
+# install postgres
 sudo apt -y install postgresql postgresql-contrib
-sudo apt-get -y install python3-pip
-sudo apt-get -y install python3-dev libmysqlclient-dev
+sudo apt -y install python3-pip python3-dev
 sudo apt -y install libpq-dev
 

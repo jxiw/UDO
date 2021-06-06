@@ -109,8 +109,7 @@ class UDOEnv(gym.Env):
             time_out_ratio * query_runtime if query_runtime < default_time_out_per_query
             else default_time_out_per_query for query_runtime in self.default_runtime]
 
-        self.sample_rate = 1
-        # config['sample_rate']
+        self.sample_rate = config['sample_rate']
         self.best_state = None
         self.best_run_performance = sum(self.default_runtime)
         logging.info("start to tuning your database")

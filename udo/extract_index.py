@@ -30,7 +30,7 @@ import itertools
 
 udo_parser = argparse.ArgumentParser(description='UDO index candidate generator.')
 
-udo_parser.add_argument('-db_schema', help='the database schmea to optimizes')
+udo_parser.add_argument('-db_schema', help='the database schema to optimizes')
 udo_parser.add_argument('-queries', help='queries')
 
 args = udo_parser.parse_args()
