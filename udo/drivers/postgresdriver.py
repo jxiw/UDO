@@ -47,6 +47,8 @@ class PostgresDriver(AbstractDriver):
         self.retrieve_table_name_sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
         self.cardinality_format = "select count(*) from %s;"
         self.cluster_indices_format = "CLUSTER %s ON %s;"
+        self.enable_index_format = "update pg_index set indisvalid = true where indexrelid = '%s'::regclass;"
+        self.disable_index_format = "update pg_index set indisvalid = false where indexrelid = '%s'::regclass;"
 
     def cardinalities(self):
         """get cardinality of the connected database"""
@@ -67,9 +69,8 @@ class PostgresDriver(AbstractDriver):
         run_time = []
         for query_sql, current_timeout in zip(query_list, timeout):
             try:
-                logging.debug(f"query sql: {query_sql}")
+                # logging.debug(f"query sql: {query_sql}")
                 logging.debug(f"current timeout: {current_timeout}")
-                current_timeout = current_timeout
                 self.cursor.execute("set statement_timeout = %d" % (current_timeout * 1000))
                 start_time = time.time()
                 self.cursor.execute(query_sql)
@@ -87,6 +88,37 @@ class PostgresDriver(AbstractDriver):
         self.cursor.execute("set statement_timeout=0;")
         self.cursor.execute("drop view if exists REVENUE0;")
         return run_time
+
+    def run_queries_with_total_timeout(self, query_list, timeout):
+        """run queries with a timeout"""
+        run_time = []
+        current_timeout = timeout
+        total_runtime = 0
+        for query_sql in query_list:
+            try:
+                logging.debug(f"current timeout: {current_timeout}")
+                self.cursor.execute("set statement_timeout = %d" % (current_timeout * 1000))
+                start_time = time.time()
+                self.cursor.execute(query_sql)
+                finish_time = time.time()
+                duration = finish_time - start_time
+            except QueryCanceledError:
+                total_runtime = timeout
+                break
+            except InternalError:
+                # error to run the query, set duration to a large number
+                logging.debug(f"Internal Error for query {query_sql}")
+                total_runtime = timeout * 1000
+                break
+            logging.debug(f"duration: {duration}")
+            run_time.append(duration)
+            current_timeout = current_timeout - duration
+            total_runtime += duration
+        # reset the timeout to the default configuration
+        self.cursor.execute("set statement_timeout=0;")
+        self.cursor.execute("drop view if exists REVENUE0;")
+        logging.debug(f"runtime {run_time}")
+        return total_runtime
 
     def run_queries_without_timeout(self, query_list):
         """run queries without timeout"""
@@ -120,7 +152,35 @@ class PostgresDriver(AbstractDriver):
 
     def set_system_parameter(self, parameter_sql):
         """switch system parameters"""
+        logging.info(f"{parameter_sql}")
         self.cursor.execute(parameter_sql)
         # self.conn.commit()
+
+    def analyze_queries_cost(self, query_sqls):
+        """analyze cost of queries"""
+        total_cost = []
+        for analyze_sql in query_sqls:
+            analyze_sql = f"explain (format json) {analyze_sql}"
+            self.cursor.execute(analyze_sql)
+            total_cost.append((self.cursor.fetchone())[0][0]['Plan']['Total Cost'])
+        logging.info(f"estimate costs {total_cost}")
+        return total_cost
+
+    def enable_indices(self, index_to_enable):
+        """enable indices"""
+        index_sql = self.enable_index_format % (index_to_enable[0])
+        logging.info(f"enable: {index_sql}")
+        self.cursor.execute(index_sql)
+
+    def disable_indices(self, index_to_disable):
+        """disable indices"""
+        index_sql = self.disable_index_format % (index_to_disable[0])
+        logging.info(f"disable: {index_sql}")
+        self.cursor.execute(index_sql)
+
+    def close(self):
+        """close the connection"""
+        self.cursor.close()
+        self.conn.close()
 
 ## CLASS

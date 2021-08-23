@@ -30,7 +30,8 @@ from .mcts_node import *
 
 class uct_node(mcts_node):
     def __init__(self, round, tree_level, tree_height, state, env, space_type=SpaceType.All,
-                 selection_policy=SelectionPolicy.UCBV, update_policy=UpdatePolicy.RAVE, terminate_action=None):
+                 selection_policy=SelectionPolicy.UCBV, update_policy=UpdatePolicy.RAVE, terminate_action=None,
+                 ucb1_er=1.2, ucbv_bound=0.1, ucbv_const=0.1):
         self.create_in = round
         # construct the transaction space, index space and parameter space
         self.env = env
@@ -58,10 +59,10 @@ class uct_node(mcts_node):
         self.update_policy = update_policy
         self.space_type = space_type
         # tuning parameters for UCB1
-        self.explore_rate = 1.2
+        self.explore_rate = ucb1_er
         # tuning parameters for UCBV
-        self.bound = 0.1
-        self.const = 0.1
+        self.bound = ucbv_bound
+        self.const = ucbv_const
 
     def select_action(self):
         """select action according to rl policy"""
@@ -75,20 +76,21 @@ class uct_node(mcts_node):
             best_action_idx = -1
             best_ucb_score = -1
             for action_idx in range(self.nr_action):
-                mean = self.first_moment[action_idx] / self.nr_tries[action_idx]
-                variance = max((self.second_moment[action_idx] / self.nr_tries[action_idx] - (mean * mean)), 0)
-                if self.selection_policy == SelectionPolicy.UCB1:
-                    ucb_score = mean + self.explore_rate * math.sqrt(
-                        math.log(self.total_visit) / self.nr_tries[action_idx])
-                elif self.selection_policy == SelectionPolicy.UCBV:
-                    ucb_score = mean + math.sqrt(
-                        self.const * variance * math.log(self.total_visit) / self.nr_tries[action_idx]) + (
-                                        3 * self.bound * math.log(self.total_visit) / self.nr_tries[action_idx])
-                else:
-                    raise ValueError('Selection policy is unavailable.')
-                if ucb_score > best_ucb_score:
-                    best_ucb_score = ucb_score
-                    best_action_idx = action_idx
+                if self.nr_tries[action_idx] > 0:
+                    mean = self.first_moment[action_idx] / self.nr_tries[action_idx]
+                    variance = max((self.second_moment[action_idx] / self.nr_tries[action_idx] - (mean * mean)), 0)
+                    if self.selection_policy == SelectionPolicy.UCB1:
+                        ucb_score = mean + self.explore_rate * math.sqrt(
+                            math.log(self.total_visit) / self.nr_tries[action_idx])
+                    elif self.selection_policy == SelectionPolicy.UCBV:
+                        ucb_score = mean + math.sqrt(
+                            self.const * variance * math.log(self.total_visit) / self.nr_tries[action_idx]) + (
+                                            3 * self.bound * math.log(self.total_visit) / self.nr_tries[action_idx])
+                    else:
+                        raise ValueError('Selection policy is unavailable.')
+                    if ucb_score > best_ucb_score:
+                        best_ucb_score = ucb_score
+                        best_action_idx = action_idx
             return self.actions[best_action_idx], best_action_idx
 
     def playout(self, current_level_action):
@@ -129,7 +131,10 @@ class uct_node(mcts_node):
                                                               space_type=self.space_type,
                                                               selection_policy=self.selection_policy,
                                                               update_policy=self.update_policy,
-                                                              terminate_action=self.terminate_action)
+                                                              terminate_action=self.terminate_action,
+                                                              ucb1_er=self.explore_rate,
+                                                              ucbv_bound=self.bound,
+                                                              ucbv_const=self.const)
             child = self.children[selected_action_idx]
             # recursively sample the tree
             if child:
@@ -154,6 +159,8 @@ class uct_node(mcts_node):
                     self.nr_tries[action_idx] += 1
                     self.first_moment[action_idx] += reward
                     self.second_moment[action_idx] += reward * reward
+                    if current_action in self.priority_actions:
+                        self.priority_actions.remove(current_action)
                     # update the reward for subtree
                     if self.children[action_idx] is not None:
                         next_selected_actions = list(filter(lambda x: x != current_action, selected_actions))
@@ -185,6 +192,7 @@ class uct_node(mcts_node):
             else:
                 mean_reward[i] = 0
         logging.debug(f"first layer avg reward {mean_reward}")
+        return mean_reward
 
     def best_actions(self):
         """best actions from the search tree"""

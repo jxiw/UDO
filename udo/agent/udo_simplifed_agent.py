@@ -47,13 +47,13 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, tuning_config):
     logging.debug(f"start: {time.time()}")
     while (current_time - start_time) < duration_in_seconds:
         # for the micro episode
-        selected_light_actions = root.sample(ep)
-        logging.debug(f"selected_light_actions: {selected_light_actions}")
+        selected_actions = root.sample(ep)
+        logging.debug(f"selected_actions: {selected_actions}")
         # evaluate the light actions
         env.reset()
-        for selected_light_action in selected_light_actions:
+        for selected_action in selected_actions:
             # move to next state
-            state = env.step_without_evaluation(selected_light_action)
+            state = env.step_without_evaluation(selected_action)
         # obtain run time info by running queries within timeout
         run_time = env.evaluate(query_keys)
         # the total time of sampled queries
@@ -64,13 +64,13 @@ def run_simplifed_udo_agent(driver, queries, candidate_indices, tuning_config):
         # light_reward = default_time / total_run_time
         light_reward = max(default_time - total_run_time, 0)
         logging.debug(f"light reward: {light_reward}")
-        root.update_statistics_with_mcts_reward(light_reward, selected_light_actions)
+        root.update_statistics_with_mcts_reward(light_reward, selected_actions)
         root.print_reward_info()
         current_best = root.best_actions()
         logging.debug(f"current best action: {current_best}")
         logging.debug(f"runtime: {total_run_time}")
         logging.info(f"current best configurations:")
-        logging.info(env.print_action_summary(root.best_actions()))
+        env.print_action_summary(root.best_actions())
         # add more episode
         ep += 1
     final_tune_time = time.time()

@@ -239,6 +239,11 @@ class UDOEnv(gym.Env):
         logging.debug(f"evaluate time {sum(run_time)}")
         return run_time
 
+    def evaluate_query_cost(self, sampled_queries):
+        cost = self.driver.analyze_queries_cost(
+            [self.query_sqls[sampled_query] for sampled_query in sampled_queries])
+        return cost
+
     def index_step(self, add_actions, remove_actions):
         """index step"""
         for add_action in add_actions:
@@ -354,7 +359,7 @@ class UDOEnv(gym.Env):
                     index_drop_sql = self.candidate_indices[i]
                     self.driver.drop_index(index_drop_sql)
             # set the parameter to default value, the first value
-            self.driver.change_system_parameter(np.zeros(self.parameter_candidate_num, dtype=int))
+            # self.driver.change_system_parameter(np.zeros(self.parameter_candidate_num, dtype=int))
         self.current_state = np.concatenate(
             [np.zeros(self.index_candidate_num, dtype=int), np.zeros(self.parameter_candidate_num, dtype=int)])
         return self.current_state

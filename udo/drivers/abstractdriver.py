@@ -21,6 +21,8 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 # -----------------------------------------------------------------------
 
+import logging
+
 class AbstractDriver(object):
     def __init__(self, driver_name, conf, sys_params):
         self.driver_name = driver_name
@@ -65,6 +67,7 @@ class AbstractDriver(object):
         for i in range(self.sys_params_type):
             parameter_choice = int(parameter_choices[i])
             parameter_change_sql = self.sys_params[i][parameter_choice]
+            logging.info(f"{parameter_change_sql}")
             self.set_system_parameter(parameter_change_sql)
 
     def get_system_parameter_command(self, parameter_type, parameter_value):

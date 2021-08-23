@@ -48,7 +48,7 @@ if __name__ == "__main__":
     # database setting
     udo_parser.add_argument('-system', choices=('mysql', 'postgres'),
                             help='Target system driver')
-    udo_parser.add_argument('-db', default="tpcc",
+    udo_parser.add_argument('-db', default="tpch",
                             help='the database to optimizes')
     udo_parser.add_argument('-username', default="udo",
                             help='username')
@@ -189,10 +189,6 @@ if __name__ == "__main__":
 
     # print(len(index.candidate_indices))
 
-    # fix the random seed
-    random.seed(123)
-    np.random.seed(123)
-
     tuning_config = {
         "duration": args['duration'],
         "horizon": args['horizon'],
@@ -226,5 +222,3 @@ if __name__ == "__main__":
         # run sarsa deep rl
         run_sarsa_agent(driver=driver, queries=queries, candidate_indices=candidate_indices,
                         tuning_config=tuning_config)
-
-    # print(args.accumulate(args.integers))

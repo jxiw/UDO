@@ -21,12 +21,14 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 # -----------------------------------------------------------------------
 
-import logging
+import json
+import re
 import time
 
 import MySQLdb
 
 from .abstractdriver import *
+
 
 class MysqlDriver(AbstractDriver):
     """the DBMS driver for MySQL"""
@@ -45,6 +47,8 @@ class MysqlDriver(AbstractDriver):
         self.sys_params_space = [len(specific_parameter) for specific_parameter in self.sys_params]
         self.retrieve_table_name_sql = "show tables;"
         self.cardinality_format = "select count(*) from %s;"
+        self.innodb_buffer_pattern = re.compile("set global innodb_buffer_pool_size = (.*);")
+        self.select_innodb_buffer_value_sql = "select @@innodb_buffer_pool_size;"
 
     def cardinalities(self):
         """get cardinality of the connected database"""
@@ -109,9 +113,48 @@ class MysqlDriver(AbstractDriver):
         self.cursor.execute(index_sql)
         self.conn.commit()
 
+    def change_system_parameter(self, parameter_choices):
+        """change system parameter values using the input parameter choices"""
+        for i in range(self.sys_params_type):
+            parameter_choice = int(parameter_choices[i])
+            parameter_change_sql = self.sys_params[i][parameter_choice]
+            self.set_system_parameter(parameter_change_sql)
+            if "innodb_buffer_pool_size" in parameter_change_sql:
+                # wait finish until it get effective
+                value_to_change = int(self.innodb_buffer_pattern.findall(parameter_change_sql)[0])
+                # verify whether the value is changed or not
+                while True:
+                    self.cursor.execute(self.select_innodb_buffer_value_sql)
+                    current_value = (self.cursor.fetchall())[0][0]
+                    if value_to_change == current_value:
+                        break
+                    else:
+                        time.sleep(3)
+                        self.set_system_parameter(parameter_change_sql)
+
     def set_system_parameter(self, parameter_sql):
         """switch system parameters"""
-        self.cursor.execute(parameter_sql)
-        self.conn.commit()
+        try:
+            logging.debug(f"set system parameter {parameter_sql}")
+            self.cursor.execute(parameter_sql)
+            self.conn.commit()
+        except MySQLdb.OperationalError as oe:
+            print(oe)
+
+    def analyze_queries_cost(self, query_sqls):
+        """analyze cost of queries"""
+        total_cost = []
+        for analyze_sql in query_sqls:
+            analyze_sql = f"EXPLAIN FORMAT=JSON {analyze_sql}"
+            self.cursor.execute(analyze_sql)
+            plan = json.loads((self.cursor.fetchone())[0])
+            total_cost.append(float(plan['query_block']['cost_info']['query_cost']))
+        logging.info(f"estimate costs {total_cost}")
+        return total_cost
+
+    def close(self):
+        """close the connection"""
+        self.cursor.close()
+        self.conn.close()
 
 ## CLASS
