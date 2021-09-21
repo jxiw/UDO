@@ -20,7 +20,12 @@ The following installation procedure was tested on Ubuntu 20.04 with Python 3. M
     python3 -m pip install -r requirement.txt`
     ```
 
-4. Install UDO Gym environment. `python3 -m pip install -e .`
+4. Install UDO Gym environment. 
+    
+    ```
+    cd udo-optimization/
+    python3 -m pip install -e .
+    ```
 
 ## Installation via PIP
 
