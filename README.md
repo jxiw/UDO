@@ -122,3 +122,26 @@ for TPC-H with scaling factor 10
    ```
    python3 -m udo -system postgres -db tpch_sf10 -username postgres -queries tpch_queries -indices tpch_index.txt -sys_params postgressysparams.json -duration 5 -agent udo -horizon 8 -heavy_horizon 3 -rl_max_delay_time 5 -default_query_time_out 18
    ```
+
+# Citation
+
+```
+@article{wang2021udo,
+  title={UDO: universal database optimization using reinforcement learning},
+  author={Wang, Junxiong and Trummer, Immanuel and Basu, Debabrota},
+  journal={Proceedings of the VLDB Endowment},
+  volume={14},
+  number={13},
+  pages={3402--3414},
+  year={2021},
+  publisher={VLDB Endowment}
+}
+
+@inproceedings{wang2021demonstrating,
+  title={Demonstrating UDO: A Unified Approach for Optimizing Transaction Code, Physical Design, and System Parameters via Reinforcement Learning},
+  author={Wang, Junxiong and Trummer, Immanuel and Basu, Debabrota},
+  booktitle={Proceedings of the 2021 International Conference on Management of Data},
+  pages={2794--2797},
+  year={2021}
+}
+```
