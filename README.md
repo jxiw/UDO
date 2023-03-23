@@ -130,6 +130,8 @@ for TPC-H with scaling factor 10
 
 # Citation
 
+If you use our repository, please cite the following papers.
+
 ```
 @article{wang2021udo,
   title={UDO: universal database optimization using reinforcement learning},
